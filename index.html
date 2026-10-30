@@ -300,6 +300,16 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 #stage{position:absolute;left:-20000px;top:0;width:1200px}
 #stage .slide{border-radius:0;box-shadow:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.combo{position:relative}
+.combo input{padding-right:38px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23556' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.cb-list{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.18);max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.cb-list[hidden]{display:none}
+.cb-opt{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:12px 14px;font:500 15px var(--body);color:var(--ink);line-height:1.3}
+.cb-opt:last-child{border-bottom:0}
+.cb-opt:active,.cb-opt.on{background:var(--bg)}
+.cb-head{padding:8px 14px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;background:var(--bg)}
+.cb-own{color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -1913,6 +1923,132 @@ if(!deck.slides.length){deck.slides=[
   {type:"content",title:"O'rganilish tarixi",bullets:["1606-yilda gollandiyalik Villem Yanszon materik qirg'oqlariga birinchi bo'lib yetib keldi.","1642-yilda Abel Tasman Tasmaniya orolini kashf etdi.","1770-yilda Jeyms Kuk materikning sharqiy qirg'og'ini o'rgandi."],imgs:[]}]}
 buildGallery();render();
 document.fonts&&document.fonts.ready.then(()=>{buildGallery();fitAll($("#deck"))});
+</script>
+
+<script>
+/* ===== Universitet / fakultet / yo'nalish avtomatik tanlash ===== */
+(function(){
+const UNIS={
+"Toshkent shahri":["Mirzo Ulug'bek nomidagi O'zbekiston Milliy universiteti","Nizomiy nomidagi Toshkent davlat pedagogika universiteti","Islom Karimov nomidagi Toshkent davlat texnika universiteti","Toshkent davlat iqtisodiyot universiteti","Muhammad al-Xorazmiy nomidagi Toshkent axborot texnologiyalari universiteti","Toshkent tibbiyot akademiyasi","Toshkent pediatriya tibbiyot instituti","Toshkent davlat stomatologiya instituti","Toshkent farmatsevtika instituti","O'zbekiston davlat jahon tillari universiteti","Toshkent davlat sharqshunoslik universiteti","Toshkent davlat yuridik universiteti","Jahon iqtisodiyoti va diplomatiya universiteti","Alisher Navoiy nomidagi Toshkent davlat o'zbek tili va adabiyoti universiteti","Toshkent arxitektura-qurilish universiteti","Toshkent davlat transport universiteti","Toshkent kimyo-texnologiya instituti","Toshkent to'qimachilik va yengil sanoat instituti","\"Toshkent irrigatsiya va qishloq xo'jaligini mexanizatsiyalash muhandislari instituti\" milliy tadqiqot universiteti","Toshkent moliya instituti","O'zbekiston jurnalistika va ommaviy kommunikatsiyalar universiteti","O'zbekiston davlat san'at va madaniyat instituti","O'zbekiston davlat konservatoriyasi","O'zbekiston davlat jismoniy tarbiya va sport universiteti","O'zbekiston xalqaro islom akademiyasi","Toshkent davlat agrar universiteti","Toshkent shahridagi Xalqaro Vestminster universiteti","Toshkent shahridagi Inha universiteti","Toshkent shahridagi Turin politexnika universiteti","Toshkent shahridagi Kimyo xalqaro universiteti","Toshkent amaliy fanlar universiteti","Akfa universiteti"],
+"Toshkent viloyati":["Chirchiq davlat pedagogika universiteti","Toshkent davlat agrar universiteti","Angren universiteti","Islom Karimov nomidagi Toshkent davlat texnika universiteti Olmaliq filiali"],
+"Andijon viloyati":["Zahiriddin Muhammad Bobur nomidagi Andijon davlat universiteti","Andijon davlat tibbiyot instituti","Andijon mashinasozlik instituti","Andijon davlat pedagogika instituti","Andijon davlat chet tillari instituti","Andijon qishloq xo'jaligi va agrotexnologiyalar instituti","Andijon iqtisodiyot va qurilish instituti"],
+"Buxoro viloyati":["Buxoro davlat universiteti","Buxoro davlat pedagogika instituti","Abu Ali ibn Sino nomidagi Buxoro davlat tibbiyot instituti","Buxoro muhandislik-texnologiya instituti","Buxoro tabiiy resurslarni boshqarish instituti","Buxoro xalqaro universiteti"],
+"Farg'ona viloyati":["Farg'ona davlat universiteti","Farg'ona politexnika instituti","Qo'qon davlat pedagogika instituti","Farg'ona jamoat salomatligi tibbiyot instituti","Muhammad al-Xorazmiy nomidagi TATU Farg'ona filiali","Qo'qon universiteti"],
+"Jizzax viloyati":["Abdulla Qodiriy nomidagi Jizzax davlat pedagogika universiteti","Jizzax politexnika instituti","O'zbekiston Milliy universiteti Jizzax filiali"],
+"Xorazm viloyati":["Abu Rayhon Beruniy nomidagi Urganch davlat universiteti","Urganch davlat pedagogika instituti","Toshkent tibbiyot akademiyasi Urganch filiali","Muhammad al-Xorazmiy nomidagi TATU Urganch filiali","Xorazm Ma'mun akademiyasi"],
+"Namangan viloyati":["Namangan davlat universiteti","Namangan davlat pedagogika instituti","Namangan muhandislik-qurilish instituti","Namangan muhandislik-texnologiya instituti","Namangan davlat chet tillari instituti"],
+"Navoiy viloyati":["Navoiy davlat universiteti","Navoiy davlat konchilik va texnologiyalar universiteti"],
+"Qashqadaryo viloyati":["Qarshi davlat universiteti","Qarshi muhandislik-iqtisodiyot instituti","Shahrisabz davlat pedagogika instituti","Muhammad al-Xorazmiy nomidagi TATU Qarshi filiali"],
+"Qoraqalpog'iston Respublikasi":["Ajiniyoz nomidagi Nukus davlat pedagogika instituti","Berdaq nomidagi Qoraqalpoq davlat universiteti","Toshkent tibbiyot akademiyasi Nukus filiali","Muhammad al-Xorazmiy nomidagi TATU Nukus filiali","Qoraqalpog'iston qishloq xo'jaligi va agrotexnologiyalar instituti","Nukus konchilik instituti","O'zbekiston davlat san'at va madaniyat instituti Nukus filiali"],
+"Samarqand viloyati":["Sharof Rashidov nomidagi Samarqand davlat universiteti","Samarqand davlat tibbiyot universiteti","Samarqand davlat chet tillari instituti","Samarqand davlat arxitektura-qurilish universiteti","Samarqand iqtisodiyot va servis instituti","Samarqand agroinnovatsiyalar va tadqiqotlar instituti","Samarqand davlat veterinariya meditsinasi, chorvachilik va biotexnologiyalar universiteti","\"Ipak yo'li\" xalqaro turizm va madaniy meros universiteti","Muhammad al-Xorazmiy nomidagi TATU Samarqand filiali"],
+"Sirdaryo viloyati":["Guliston davlat universiteti","Guliston davlat pedagogika instituti","Toshkent kimyo-texnologiya instituti Yangiyer filiali"],
+"Surxondaryo viloyati":["Termiz davlat universiteti","Termiz davlat pedagogika instituti","Termiz muhandislik-texnologiya instituti","Termiz iqtisodiyot va servis universiteti","Toshkent tibbiyot akademiyasi Termiz filiali","Termiz agrotexnologiyalar va innovatsion rivojlanish instituti"]
+};
+const FAC={
+"Tabiiy fanlar fakulteti":["Geografiya","Biologiya","Kimyo","Ekologiya va atrof-muhit muhofazasi","Geografiya va iqtisodiy bilim asoslari"],
+"Geografiya fakulteti":["Geografiya","Gidrometeorologiya","Kartografiya","Geodeziya va geoinformatika","Turizm"],
+"Biologiya fakulteti":["Biologiya","Biotexnologiya","Ekologiya va atrof-muhit muhofazasi"],
+"Kimyo fakulteti":["Kimyo","Kimyoviy texnologiya"],
+"Fizika-matematika fakulteti":["Matematika","Fizika","Fizika va astronomiya","Informatika","Matematika va informatika"],
+"Matematika fakulteti":["Matematika","Amaliy matematika","Matematika va informatika"],
+"Fizika fakulteti":["Fizika","Fizika va astronomiya","Astronomiya"],
+"Filologiya fakulteti":["O'zbek tili va adabiyoti","Ona tili va adabiyoti","Rus tili va adabiyoti","Qoraqalpoq tili va adabiyoti","Qozoq tili va adabiyoti"],
+"Xorijiy tillar fakulteti":["Xorijiy til va adabiyoti (ingliz tili)","Xorijiy til va adabiyoti (nemis tili)","Xorijiy til va adabiyoti (fransuz tili)","Lingvistika","Tarjima nazariyasi va amaliyoti"],
+"Tarix fakulteti":["Tarix","Arxeologiya","Muzeyshunoslik","Tarix va huquq"],
+"Ijtimoiy fanlar fakulteti":["Falsafa","Sotsiologiya","Siyosatshunoslik","Psixologiya"],
+"Pedagogika va psixologiya fakulteti":["Pedagogika va psixologiya","Psixologiya","Pedagogika"],
+"Boshlang'ich ta'lim fakulteti":["Boshlang'ich ta'lim","Maktabgacha ta'lim","Maxsus pedagogika (defektologiya)"],
+"Maktabgacha ta'lim fakulteti":["Maktabgacha ta'lim","Boshlang'ich ta'lim"],
+"Jismoniy madaniyat fakulteti":["Jismoniy madaniyat","Sport faoliyati","Jismoniy madaniyat va sport"],
+"San'atshunoslik fakulteti":["Musiqa ta'limi","Tasviriy san'at va muhandislik grafikasi","Dizayn"],
+"Texnologik ta'lim fakulteti":["Texnologik ta'lim","Kasb ta'limi","Tasviriy san'at va muhandislik grafikasi"],
+"Axborot texnologiyalari fakulteti":["Informatika o'qitish metodikasi","Dasturiy injiniring","Kompyuter injiniringi","Axborot xavfsizligi","Sun'iy intellekt","Telekommunikatsiya texnologiyalari"],
+"Iqtisodiyot fakulteti":["Iqtisodiyot","Moliya va moliyaviy texnologiyalar","Buxgalteriya hisobi va audit","Bank ishi","Menejment","Marketing","Turizm va mehmondo'stlik"],
+"Yuridik fakulteti":["Yurisprudensiya","Xalqaro huquq"],
+"Jurnalistika fakulteti":["Jurnalistika","Xalqaro jurnalistika","Ommaviy kommunikatsiyalar"],
+"Davolash ishi fakulteti":["Davolash ishi"],
+"Pediatriya fakulteti":["Pediatriya ishi"],
+"Stomatologiya fakulteti":["Stomatologiya"],
+"Tibbiy profilaktika fakulteti":["Tibbiy profilaktika ishi","Jamoat salomatligi"],
+"Farmatsiya fakulteti":["Farmatsiya","Sanoat farmatsiyasi"],
+"Oliy hamshiralik ishi fakulteti":["Oliy hamshiralik ishi"],
+"Qurilish fakulteti":["Qurilish muhandisligi","Bino va inshootlar qurilishi","Arxitektura","Shahar qurilishi va xo'jaligi"],
+"Energetika fakulteti":["Elektr energetikasi","Issiqlik energetikasi","Muqobil energiya manbalari"],
+"Mashinasozlik fakulteti":["Mashinasozlik texnologiyasi","Avtomobilsozlik","Transport vositalari muhandisligi","Metallurgiya"],
+"Kimyo-texnologiya fakulteti":["Kimyoviy texnologiya","Oziq-ovqat texnologiyasi","Neft va gaz ishi"],
+"Konchilik fakulteti":["Konchilik ishi","Geologiya","Metallurgiya"],
+"Agronomiya fakulteti":["Agronomiya","Bog'dorchilik va uzumchilik","O'simliklar himoyasi","Agrokimyo va agrotuproqshunoslik","Zooinjeneriya","Veterinariya"],
+"Gidromelioratsiya fakulteti":["Gidrotexnika qurilishi","Suv xo'jaligi va melioratsiya","Qishloq xo'jaligini mexanizatsiyalash"],
+"San'at va madaniyat fakulteti":["Musiqa san'ati","Aktyorlik san'ati","Rejissorlik","Kutubxona-axborot faoliyati","Madaniyat va san'at muassasalarini boshqarish"]
+};
+const TYPES=[
+ [/tibbiyot|pediatriya|stomatolog|farmatsev|salomatlig/i,["Davolash ishi fakulteti","Pediatriya fakulteti","Stomatologiya fakulteti","Tibbiy profilaktika fakulteti","Farmatsiya fakulteti","Oliy hamshiralik ishi fakulteti"]],
+ [/axborot|tatu/i,["Axborot texnologiyalari fakulteti","Iqtisodiyot fakulteti"]],
+ [/chet tillari|jahon tillari/i,["Xorijiy tillar fakulteti","Filologiya fakulteti"]],
+ [/yuridik/i,["Yuridik fakulteti"]],
+ [/jurnalistika/i,["Jurnalistika fakulteti","Filologiya fakulteti"]],
+ [/san'at|konservatoriya|madaniyat/i,["San'at va madaniyat fakulteti","San'atshunoslik fakulteti"]],
+ [/sport|jismoniy/i,["Jismoniy madaniyat fakulteti"]],
+ [/agrar|qishloq|agro|veterinar|irrigatsiya|tabiiy resurs/i,["Agronomiya fakulteti","Gidromelioratsiya fakulteti","Iqtisodiyot fakulteti"]],
+ [/iqtisod|moliya|servis|diplomatiya|turizm/i,["Iqtisodiyot fakulteti","Yuridik fakulteti","Xorijiy tillar fakulteti"]],
+ [/konchilik/i,["Konchilik fakulteti","Kimyo-texnologiya fakulteti","Energetika fakulteti","Iqtisodiyot fakulteti"]],
+ [/texnika|politexnika|muhandislik|texnologiya|qurilish|transport|mashinasozlik|to'qimachilik|arxitektura/i,["Qurilish fakulteti","Energetika fakulteti","Mashinasozlik fakulteti","Kimyo-texnologiya fakulteti","Axborot texnologiyalari fakulteti","Iqtisodiyot fakulteti"]],
+ [/pedagogika/i,["Tabiiy fanlar fakulteti","Fizika-matematika fakulteti","Filologiya fakulteti","Xorijiy tillar fakulteti","Tarix fakulteti","Pedagogika va psixologiya fakulteti","Boshlang'ich ta'lim fakulteti","Maktabgacha ta'lim fakulteti","Jismoniy madaniyat fakulteti","San'atshunoslik fakulteti","Texnologik ta'lim fakulteti","Axborot texnologiyalari fakulteti"]]
+];
+const UNIV_FAC=["Tabiiy fanlar fakulteti","Geografiya fakulteti","Biologiya fakulteti","Kimyo fakulteti","Matematika fakulteti","Fizika fakulteti","Filologiya fakulteti","Xorijiy tillar fakulteti","Tarix fakulteti","Ijtimoiy fanlar fakulteti","Pedagogika va psixologiya fakulteti","Iqtisodiyot fakulteti","Yuridik fakulteti","Axborot texnologiyalari fakulteti","Jurnalistika fakulteti","Jismoniy madaniyat fakulteti","San'atshunoslik fakulteti"];
+const ALLU=[...new Set(Object.values(UNIS).flat())];
+const ALLF=Object.keys(FAC);
+const ALLD=[...new Set(Object.values(FAC).flat())];
+const norm=s=>(s||"").toLowerCase().replace(/[ʻʼ‘’`´]/g,"'").replace(/\s+/g," ").trim();
+const val=id=>(document.getElementById(id)||{}).value||"";
+function facsFor(u){if(!u.trim())return ALLF;for(const [re,l] of TYPES)if(re.test(u))return l;return UNIV_FAC}
+function dirsFor(f){const k=ALLF.find(x=>norm(x)===norm(f));if(k)return FAC[k];
+  const n=norm(f).replace(/ fakulteti$/,"");const k2=ALLF.find(x=>norm(x).startsWith(n)&&n.length>3);return k2?FAC[k2]:ALLD}
+function combo(id,main,all,ownText){
+  const inp=document.getElementById(id);if(!inp||inp.dataset.combo)return;inp.dataset.combo="1";
+  const wrap=document.createElement("div");wrap.className="combo";inp.parentNode.insertBefore(wrap,inp);wrap.appendChild(inp);
+  const box=document.createElement("div");box.className="cb-list";box.hidden=true;box.setAttribute("role","listbox");wrap.appendChild(box);
+  inp.setAttribute("role","combobox");inp.readOnly=true;inp.setAttribute("aria-autocomplete","list");
+  let showAll=true,editing=false;
+  const pick=v=>{inp.value=v;editing=false;inp.readOnly=true;box.hidden=true;inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}));inp.blur()};
+  const btn=(t,cls)=>{const b=document.createElement("button");b.type="button";b.className="cb-opt"+(cls?" "+cls:"");b.textContent=t;
+    b.addEventListener("mousedown",e=>e.preventDefault());return b};
+  function render(){
+    const q=showAll?"":norm(inp.value);const m=main();let list=m;
+    box.innerHTML="";
+    if(q){const pool=[...new Set([...m,...all()])];list=pool.filter(x=>norm(x).includes(q));}
+    if(!list.length&&!q)list=all();
+    if(!q&&m!==all()&&m.length){const h=document.createElement("div");h.className="cb-head";h.textContent=ownText.head();box.appendChild(h)}
+    list.slice(0,80).forEach(x=>{const b=btn(x);if(norm(x)===norm(inp.value))b.classList.add("on");b.onclick=()=>pick(x);box.appendChild(b)});
+    const o=btn(q&&!list.some(x=>norm(x)===q)?"✏️ «"+inp.value.trim()+"» deb qoldirish":"✏️ Ro'yxatda yo'q — o'zim yozaman","cb-own");
+    o.onclick=()=>{box.hidden=true;showAll=false;inp.readOnly=false;editing=true;inp.blur();setTimeout(()=>{inp.focus();try{const n=inp.value.length;inp.setSelectionRange(n,n)}catch(_){}},30)};box.appendChild(o);
+    box.hidden=false;
+  }
+  inp.addEventListener("focus",()=>{if(editing)return;showAll=true;render()});
+  inp.addEventListener("click",()=>{if(!editing&&box.hidden){showAll=true;render()}});
+  inp.addEventListener("input",e=>{if(!e.isTrusted)return;showAll=false;render()});
+  inp.addEventListener("blur",()=>setTimeout(()=>{if(document.activeElement===inp)return;box.hidden=true;if(editing){editing=false;inp.readOnly=true;inp.dispatchEvent(new Event("change",{bubbles:true}))}},150));
+  inp.addEventListener("keydown",e=>{if(e.key==="Escape"||e.key==="Enter"){box.hidden=true;if(e.key==="Enter")inp.blur()}});
+  document.addEventListener("pointerdown",e=>{if(!wrap.contains(e.target))box.hidden=true});
+}
+function init(){
+  const reg=()=>val("region");
+  combo("uni",()=>UNIS[reg()]||ALLU,()=>ALLU,{head:()=>reg()?reg()+" oliygohlari":"Oliygohlar"});
+  combo("fac",()=>facsFor(val("uni")),()=>ALLF,{head:()=>val("uni")?"Shu oliygoh fakultetlari":"Fakultetlar"});
+  combo("major",()=>dirsFor(val("fac")),()=>ALLD,{head:()=>val("fac")?val("fac")+" yo'nalishlari":"Yo'nalishlar"});
+  const ph={uni:"Tanlang yoki yozing",fac:"Tanlang yoki yozing",major:"Tanlang yoki yozing"};
+  for(const k in ph){const e=document.getElementById(k);if(e)e.placeholder=ph[k]}
+  const r=document.getElementById("region");
+  if(r)r.addEventListener("change",()=>{const u=document.getElementById("uni");if(!u)return;
+    const l=UNIS[r.value]||[];if(u.value&&!l.some(x=>norm(x)===norm(u.value))&&ALLU.some(x=>norm(x)===norm(u.value))){u.value="";u.dispatchEvent(new Event("input",{bubbles:true}))}
+    if(!u.value&&l.length)setTimeout(()=>u.focus(),60)});
+  const u=document.getElementById("uni");
+  if(u)u.addEventListener("change",()=>{const f=document.getElementById("fac");if(f&&!f.value)setTimeout(()=>f.focus(),60)});
+  const f=document.getElementById("fac");
+  if(f)f.addEventListener("change",()=>{const m=document.getElementById("major");if(m&&!m.value)setTimeout(()=>m.focus(),60)});
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
 </script>
 </body>
 </html>
