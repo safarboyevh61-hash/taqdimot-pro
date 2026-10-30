@@ -780,7 +780,7 @@ function pickKeepOrder(arr,count,score){if(arr.length<=count)return arr.slice();
   return keepFirst.concat(rest).sort((a,b)=>a-b).map(i=>arr[i])}
 function groupSecs(secs){const groups=[],by={};
   secs.forEach(sc=>{const parts=sc.head.split(": "),p=parts[0].trim(),c=parts.length>1?parts[parts.length-1].trim():null;
-    let g=by[p];if(!g){g={title:p,own:[],kids:[],kidBy:{}};by[p]=g;groups.push(g)}
+    let g=by[p];if(!g){g={title:p,own:[],kids:[],kidBy:{},art:!!(sc.src&&sc.src===p)};by[p]=g;groups.push(g)}
     if(c&&norm(c)!==norm(p)){let k=g.kidBy[c];if(!k){k={title:c,sents:[]};g.kidBy[c]=k;g.kids.push(k)}k.sents.push(...sc.sents)}else g.own.push(...sc.sents)});
   return groups}
 const lcFirst=t=>/^\p{Lu}\p{Ll}/u.test(t)?t.charAt(0).toLowerCase()+t.slice(1):t;
@@ -796,8 +796,10 @@ function planFromSecs(secs,mode,count,slides){let groups=groupSecs(secs);
   if(mode==="complex"){let gs=groups;
     if(gs.length<count){gs=[];groups.forEach(g=>{gs.push(g);if(g.kids.length>1&&gs.length<count)g.kids.slice(1).forEach(k=>{if(k.sents.length>=3){gs.push({title:k.title,own:k.sents,kids:[]});k.sents=[]}})})}
     return pickKeepOrder(gs.filter(g=>size(g)),count,size).map(g=>({title:longTitle(g),short:g.title,sents:g.own.concat(...g.kids.map(k=>k.sents)),subs:[]}))}
-  let pool=groups.map(g=>({title:g.title,sents:g.own.concat(...g.kids.map(k=>k.sents))}));
-  if(pool.length<count){pool=[];groups.forEach(g=>{if(g.own.length)pool.push({title:g.title,sents:g.own});g.kids.forEach(k=>{if(k.sents.length)pool.push({title:k.title,sents:k.sents})})})}
+  // har band faqat o'z nomiga mos ma'lumotni oladi: ichki bo'limlar boshqa band nomi ostiga aralashtirilmaydi
+  let pool=[];groups.forEach(g=>{const kids=g.kids.filter(k=>k.sents.length);
+    if(g.art||!kids.length){const all=g.own.concat(...kids.map(k=>k.sents));if(all.length)pool.push({title:g.title,sents:all})}
+    else{if(g.own.length>=2||(g.own.length&&INTRO.test(norm(g.title))))pool.push({title:g.title,sents:g.own});kids.forEach(k=>pool.push({title:k.title,sents:k.sents}))}});
   // oddiy reja: har band bo'yicha qisqa ma'lumot
   // oddiy reja: qisqa bandlar; har bandga tanlangan slaydlar soniga yetadigan ma'lumot
   const per=Math.max(6,Math.ceil(Math.max(0,(slides||10)-4)*CH.n/Math.max(1,count)));
@@ -1021,6 +1023,13 @@ async function pageImages(lang,title){try{return pickImgs(await api(lang,{action
 async function commonsImages(q){try{return pickImgs(await api("commons.wikimedia.org",{action:"query",generator:"search",gsrsearch:q+" filetype:bitmap",gsrnamespace:6,gsrlimit:40,prop:"imageinfo",iiprop:"url|mime|size",iiurlwidth:900}))}catch(_){return[]}}
 async function langTitle(lang,title,to){try{const d=await api(lang,{action:"query",prop:"langlinks",titles:title,lllang:to,redirects:1});const p=Object.values(d.query.pages)[0];
   return p.langlinks&&p.langlinks[0]?p.langlinks[0]["*"]:null}catch(_){return null}}
+// Commons qidiruvidan faqat nomi mavzuga mos rasmlar ("Education in the United Kingdom" uchun konferensiya suratlari emas)
+const EN_ASP={education:/educat|school|universit|college|pupil|student|classroom|lecture|campus|teacher|academ|kindergarten/,economy:/econom|industr|factory|port|market|trade|bank|farm/,
+  demographics:/people|population|crowd|ethnic|city/,history:/histor|ancient|medieval|war|castle|museum|map|king|queen/,culture:/cultur|art|music|festival|theatre|dance|museum|cuisine/};
+function relevantCommons(q,list){const name=u=>{try{return decodeURIComponent(u.split("/").pop()).toLowerCase()}catch(_){return u.toLowerCase()}};
+  const ws=q.toLowerCase().split(/[^a-z\u00c0-\u024f\u0400-\u04ff']+/).filter(w=>w.length>=4&&!["with","from","the","and"].includes(w));
+  const asp=Object.keys(EN_ASP).find(k=>ws.some(w=>w.startsWith(k.slice(0,6))));
+  return list.filter(u=>{const n=name(u);if(asp)return EN_ASP[asp].test(n);return ws.some(w=>n.includes(w.slice(0,Math.max(4,w.length-2))))})}
 async function collectImages(lang,main,extra,n,seeds){
   const want=Math.max(n*2,16);let pool=[];const add=a=>{pool=[...new Set(pool.concat(a))]};
   for(const sd of seeds||[]){setStatus("Mavzuga oid rasmlar yig'ilmoqda…");add(await pageImages(sd.lang,sd.title))}
@@ -1030,7 +1039,7 @@ async function collectImages(lang,main,extra,n,seeds){
   const en=lang==="en"?main.title:await langTitle(lang,main.title,"en");
   if(pool.length<want&&en&&lang!=="en"){setStatus("Rasmlar yig'ilmoqda (inglizcha maqoladan)…");add(await pageImages("en",en))}
   if(pool.length<want&&lang!=="ru"){const ru=await langTitle(lang,main.title,"ru");if(ru){setStatus("Rasmlar yig'ilmoqda (ruscha maqoladan)…");add(await pageImages("ru",ru))}}
-  if(pool.length<want){setStatus("Rasmlar yig'ilmoqda (Wikimedia Commons)…");add(await commonsImages(en||main.title))}
+  if(pool.length<want){setStatus("Rasmlar yig'ilmoqda (Wikimedia Commons)…");add(relevantCommons(en||main.title,await commonsImages(en||main.title)))}
   for(const p of extra.slice(0,3)){if(pool.length>=want)break;add(await pageImages(lang,p.title))}
   return pool}
 
@@ -1863,7 +1872,7 @@ async function enrichCards(slides,lang,topic){
   for(let i=0;i<slides.length;i++){if(!per[i].length)continue;const cards=[];
     for(const e of per[i]){if(cards.length>=4)break;const w=wm[e.t];if(e.single&&!w)continue;
       let img=w&&w.img&&!/\.svg/i.test(w.img)?w.img:"";
-      if(!img&&budget>0){budget--;setStatus(`Rasm qidirilmoqda: «${w?w.title:e.t}»…`);img=(await commonsImages(w?w.title:e.t)).find(u=>!used.has(u))||""}
+      // faqat shu nomdagi maqolaning o'z rasmi — tasodifiy qidiruv rasmlari qo'yilmaydi
       if(img&&!used.has(img)){used.add(img);cards.push({img,label:(w?w.title:e.t).replace(/\s*\(.*\)$/,"")})}}
     slides[i].cards=cards}}
 function slideHTML(s,i){
