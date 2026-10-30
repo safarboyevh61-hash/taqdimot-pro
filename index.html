@@ -310,6 +310,8 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 .cb-opt:active,.cb-opt.on{background:var(--bg)}
 .cb-head{padding:8px 14px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;background:var(--bg)}
 .cb-own{color:var(--accent);font-weight:700}
+.tgway{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.tgway>b{font-size:14px}
 </style>
 </head>
 <body>
@@ -1699,9 +1701,9 @@ async function uploadTemp(blob,name){
       if(!j||!j.data||!j.data.url)throw 0;return j.data.url.replace(/^http:/,"https:").replace("tmpfiles.org/","tmpfiles.org/dl/")};
   const tflink=async via=>{const fd=new FormData();fd.append("file",blob,name);const r=await fetch(via("https://tmpfile.link/api/upload"),{method:"POST",body:fd});const j=await r.json();
       if(!j||!j.downloadLink)throw 0;return j.downloadLink};
-  const litter=async via=>{const fd=new FormData();fd.append("reqtype","fileupload");fd.append("time","24h");fd.append("fileToUpload",blob,name);
+  const litter=async via=>{const fd=new FormData();fd.append("reqtype","fileupload");fd.append("time","72h");fd.append("fileToUpload",blob,name);
       const r=await fetch(via("https://litterbox.catbox.moe/resources/internals/api.php"),{method:"POST",body:fd});const t=(await r.text()).trim();if(!/^https:\/\//.test(t))throw 0;return t};
-  const D=u=>u,tries=[[tmpfiles,D],[tflink,D],[litter,D],[tmpfiles,P],[tflink,P],[litter,P]];
+  const D=u=>u,tries=[[litter,D],[tmpfiles,D],[tflink,D],[litter,P],[tmpfiles,P],[tflink,P]];
   for(const[k,[f,via]]of tries.entries()){dlStatus(`Yuklab olish havolasi tayyorlanmoqda (${k+1}-usul)…`);
     try{return await Promise.race([f(via),new Promise((_,rj)=>setTimeout(()=>rj(0),45000))])}catch(_){}}
   return null}
@@ -1778,11 +1780,34 @@ async function shareNow(kind){
       dlStatus(`«${name}» yuborildi. Telegram'da «Saqlangan xabarlar»ni tekshiring.`);$("#dlLink").hidden=true;return}}
   catch(e){if(e&&e.name==="AbortError"){dlStatus("Yuborish bekor qilindi. Qayta urinish uchun tugmani bosing.");return}}
   if(await nativeShare(blob,name)){dlStatus("Ulashish oynasi ochildi: Telegram → «Saqlangan xabarlar»ni tanlang.");$("#dlLink").hidden=true;return}
-  dlStatus("Bu telefonda fayl ulashish ishlamadi. Avval faylni yuklab oling, keyin Telegram'da 📎 orqali «Saqlangan xabarlar»ga yuboring.",true)}
+  tgFallback(kind,blob,name)}
+// Brauzer (Chrome) PPTX faylni ulashishga ruxsat bermaydi — zaxira yo'llar
+function tgFallback(kind,blob,name){
+  const box=$("#dlLink");box.hidden=false;const mb=(blob.size/1048576).toFixed(1);
+  const tgApp="intent://#Intent;scheme=tg;package=org.telegram.messenger;S.browser_fallback_url="+encodeURIComponent("https://t.me/")+";end";
+  const why=kind==="pptx"&&navigator.share?`<b>Telefon brauzeri PPTX faylni to'g'ridan-to'g'ri Telegram'ga bera olmaydi</b> (u faqat PDF va rasmlarga ruxsat beradi).`:`<b>Bu oynada fayl ulashish ishlamaydi.</b> Saytni Chrome'da oching yoki`;
+  box.innerHTML=`<small>${why} Quyidagi 2 yo'ldan birini tanlang:</small>
+    <div class="tgway"><b>1-yo'l — fayl bo'lib yuborish</b>
+      <button type="button" class="dl-a" id="tgDl">⬇ 1) Faylni telefonga yuklab olish (${mb} MB)</button>
+      <a class="dl-b tg" id="tgOpen" href="${esc(tgApp)}">✈ 2) Telegram'ni ochish</a>
+      <small>Telegram'da: <b>Saqlangan xabarlar</b> → <b>📎</b> → <b>Fayl</b> → <b>Yuklanmalar (Download)</b> → «${esc(name)}» ni tanlang.</small></div>
+    <div class="tgway"><b>2-yo'l — havola bo'lib yuborish</b>
+      <button type="button" class="dl-b tg" id="tgLink">🔗 Havola yaratib Telegram'ga yuborish</button>
+      <small>Fayl internetga vaqtincha (3 kun) joylanadi, Telegram'ga uning havolasi boradi. Havolani bossangiz fayl yuklanadi.</small></div>`;
+  $("#tgDl").onclick=()=>{blobDownload(blob,name);dlStatus(`«${name}» yuklab olinmoqda. Endi «2) Telegram'ni ochish» tugmasini bosing.`)};
+  $("#tgLink").onclick=async()=>{const b=$("#tgLink");b.disabled=true;b.textContent="Havola tayyorlanmoqda…";
+    const link=await uploadTemp(blob,name);b.disabled=false;
+    if(!link){b.textContent="🔗 Havola yaratib Telegram'ga yuborish";dlStatus("Havola yaratib bo'lmadi. 1-yo'ldan foydalaning.",true);return}
+    const share="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("📊 "+name+"\n"+tgCaption());
+    b.outerHTML=`<a class="dl-a tgb" id="tgGo" href="${esc(share)}" target="_blank" rel="noopener">✈ Telegram'ga yuborish</a>`;
+    dlStatus("Havola tayyor. «Telegram'ga yuborish» ni bosing va «Saqlangan xabarlar»ni tanlang.")};
+  dlStatus("Fayl tayyor. Pastdagi yo'llardan birini tanlang.")}
+function canShareKind(kind){try{const b=BLOBS[kind];if(!navigator.share||!navigator.canShare)return !!navigator.share;
+  return navigator.canShare({files:[new File([b||new Blob(["x"])],"t."+kind,{type:(b&&b.type)||""})]})}catch(_){return false}}
 async function runTelegram(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const had=!!BLOBS[kind];await buildBlob(kind);
-    if(had){await shareNow(kind);return}
+    if(had||!canShareKind(kind)){await shareNow(kind);return}
     // fayl tayyorlanishi uzoq davom etgani uchun yuborish yangi bosishni talab qiladi
     const box=$("#dlLink");box.hidden=false;const mb=(BLOBS[kind].size/1048576).toFixed(1);
     box.innerHTML=`<button type="button" class="dl-a tgb" id="tgSend">✈ «${esc(tgName(kind))}» ni Telegram'ga yuborish</button>
