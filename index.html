@@ -423,7 +423,7 @@ Ta'limni moliyalashtirish"></textarea>
       <div class="status" id="srcStatus"></div>
       <textarea id="manual" placeholder="Bu yerda mavzu matni chiqadi (PDF va skrinshotlardan o'qilgan yoki siz qo'ygan). Uni tahrirlashingiz mumkin."></textarea>
       <div class="row"><button type="button" class="primary" id="fromText">Shu ma'lumotdan slayd yaratish</button><button type="button" id="srcClear">Matnni tozalash</button></div>
-      <small>Slaydlar yuqorida tanlangan reja turi va bandlar soni asosida tuziladi: matn har bir reja bandiga mos ravishda taqsimlanadi.</small>
+      <small>Reja matnning mazmunidan <b>avtomatik tuziladi</b> (masalan: Geografik o'rni, Iqlimi, Aholisi, Iqtisodiyoti…) — bandlar soni yuqorida tanlanganicha bo'ladi. «Rejani o'zim yozaman» tanlansa, matn sizning rejangizga taqsimlanadi.</small>
     </div>
     <div class="links" id="links"></div>
   </section>
@@ -1292,12 +1292,91 @@ function distributeLeft(items,secs){const used=new Set();items.forEach(it=>{it.s
 function splitPlain(secs,count){const all=secs.flatMap(s=>s.sents),per=Math.ceil(all.length/count),out=[];
   for(let i=0;i<count&&i*per<all.length;i++){const ss=all.slice(i*per,(i+1)*per),w=ss[0].replace(/[«»"“”()]/g,"").split(/\s+/).slice(0,5).join(" ");out.push({head:i===0?"Umumiy ma'lumot":w.replace(/[,.;:]$/,"")+"…",sents:ss,src:""})}
   return out}
+// matndan avtomatik reja: gaplar mazmuniga ko'ra guruhlanadi va har guruhga nom beriladi
+const AUTO_ASP=[
+ [/geografik o'rn|joylash|chegaradosh|chegaras|maydoni|hududi|koordinat|yarimshar|qit'a/,"Geografik o'rni va hududi","Chegaralari va maydoni"],
+ [/tarix|qadimgi|qadimda|asrda|asrlar|sulola|imperiya|xonlig|mustamlaka|istilo|bosib ol|arxeolog/,"Tarixi","Tarixiy rivojlanish bosqichlari"],
+ [/iqlim|harorat|yog'in|shamol|ob-havo|°c|issiq|sovuq|mussom|passat/,"Iqlimi","Iqlim xususiyatlari va fasllar"],
+ [/relyef|tog'|tekislik|vulqon|pasttekislik|yassitog'|cho'qqi|plato|zilzila/,"Relyefi","Tog'lari va tekisliklari"],
+ [/daryo|ko'l|suv|muzlik|sharshara|irmoq|havza/,"Ichki suvlari","Daryo va ko'llari"],
+ [/o'simlik|hayvon|o'rmon|fauna|flora|tabiat zona|savanna|cho'l|dasht/,"Tabiat zonalari, o'simlik va hayvonot dunyosi","Hayvonot dunyosi"],
+ [/foydali qazilma|neft|tabiiy gaz|ko'mir|oltin|olmos|ruda|konlar|mis |temir ruda|uran/,"Foydali qazilmalari","Tabiiy resurslardan foydalanish"],
+ [/aholi|millat|xalqlar|zichlig|demograf|tug'ilish|o'lim darajas|urbaniz|etnik/,"Aholisi","Aholi tarkibi va joylashuvi"],
+ [/iqtisod|sanoat|qishloq xo'jalig|eksport|import|yaim|savdo|ishlab chiqar|valyuta|daromad|byudjet/,"Iqtisodiyoti","Sanoat va qishloq xo'jaligi"],
+ [/ta'lim|maktab|universitet|o'quvchi|talaba|o'qituvchi|litsey|kollej|o'quv yil|darslik|bog'cha/,"Ta'lim tizimi","Ta'lim bosqichlari va muassasalari"],
+ [/madaniyat|san'at|adabiyot|me'morchilik|musiqa|an'ana|bayram|teatr|milliy taom|urf-odat/,"Madaniyati va an'analari","Urf-odat va bayramlar"],
+ [/transport|temir yo'l|avtomobil yo'l|aeroport|dengiz port|metro/,"Transporti","Transport tarmoqlari"],
+ [/siyosat|prezident|parlament|hukumat|konstitutsiya|davlat tuzum|poytaxt|monarxiya|respublika/,"Davlat tuzumi va boshqaruvi","Davlat boshqaruvi organlari"],
+ [/\bdin|islom|xristian|buddizm|masjid|ibodat/,"Dini","Diniy e'tiqodlar"],
+ [/turizm|sayyoh|diqqatga sazovor|ziyoratgoh/,"Turizmi","Diqqatga sazovor joylar"],
+ [/sport|olimpiya|futbol|chempion/,"Sporti","Sport yutuqlari"],
+ [/ekologi|ifloslan|muhofaza|chiqindi|global isish|muammo/,"Ekologik muammolar","Muammolar va ularning yechimlari"],
+ [/ahamiyat|foydas|zarur|muhim|rol o'ynay|ta'minlay/,"Ahamiyati","Amaliy ahamiyati"],
+ [/tur(lar)?i |turlarga|xillari|tasnif|guruhlarga bo'lin/,"Turlari va tasnifi","Asosiy turlari"],
+ [/tuzilish|tarkib|qism(lar)?dan iborat|tuzilgan/,"Tuzilishi va tarkibi","Tarkibiy qismlari"]];
+function sentAsp(s){const x=" "+norm(s)+" ";let best=-1,bv=0;AUTO_ASP.forEach(([re],i)=>{const m=x.match(new RegExp(re.source,"g"));const v=m?m.length:0;if(v>bv){bv=v;best=i}});return best}
+const ADJ=/^(muhim|katta|asosiy|yuqori|past|ko'p|juda|yangi|kichik|yirik|turli|boshqa|hamma|barcha|ayniqsa|odatda|shuningdek|keyin|hozir)/;
+const SUF_DISP=/(larning|lardan|larda|larga|larni|ning|dagi|dan|ga|da|ni)$/,VERBISH=/(di|ydi|adi|gan|moqda|ladi|lar|ib|ish|ib|roq|li|siz|gi|ki)$/;
+function kwTitle(sents,all,topicKeys){const cnt=new Map(),glob=new Map(),surf=new Map();
+  const words=t=>(t.match(/[\p{L}'ʻʼ‘’-]+/gu)||[]).map(w=>w.replace(/[ʻʼ‘’]/g,"'"));
+  all.forEach(s=>words(s).forEach(w=>{const k=stem(w);glob.set(k,(glob.get(k)||0)+1)}));
+  sents.forEach(s=>words(s).forEach(w=>{const k=stem(w);if(k.length<5||STOP.has(k)||GENERIC.test(k)||VERBISH.test(w.toLowerCase())||ADJ.test(k)||/^\p{Lu}/u.test(w)&&false||topicKeys.some(t=>k.startsWith(t.slice(0,4))))return;
+    cnt.set(k,(cnt.get(k)||0)+1);const sf=surf.get(k)||{};const lw=w.toLowerCase();sf[lw]=(sf[lw]||0)+1;surf.set(k,sf)}));
+  const many=[...cnt.values()].some(c=>c>=2);
+  const top=[...cnt.entries()].filter(([,c])=>c>=(many?2:1)).map(([k,c])=>[k,c*c/(glob.get(k)||1)]).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k])=>{
+    const sf=surf.get(k),w=Object.entries(sf).sort((a,b)=>b[1]-a[1])[0][0],orig=(sents.join(" ").match(new RegExp("(?<=[^.!?]\\s)"+w.charAt(0).toUpperCase()+w.slice(1).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"u"))||[])[0];if(orig)return orig.replace(SUF_DISP,"");const b=w.replace(SUF_DISP,"");return b.length>=4?b:w});
+  if(!top.length)return "";return cap(top.length>1?top[0]+" va "+top[1]:top[0])}
+function kwSections(all,count,topicKeys){
+  const n=Math.max(1,Math.min(count,Math.floor(all.length/2)));const ws=s=>new Set((norm(s).match(/[\p{L}']+/gu)||[]).map(stem).filter(k=>k.length>=4&&!STOP.has(k)));
+  const W=all.map(ws),sim=(i)=>{if(i<=0||i>=all.length)return 1;let c=0;W[i-1].forEach(k=>{if(W[i].has(k))c++});return c/Math.max(1,Math.min(W[i-1].size,W[i].size))};
+  const cuts=[];for(let j=1;j<n;j++){let b=Math.round(j*all.length/n),best=b,bv=sim(b);for(let d=-2;d<=2;d++){const x=b+d;if(x<=(cuts[cuts.length-1]||0)+1||x>=all.length-1)continue;const v=sim(x);if(v<bv){bv=v;best=x}}cuts.push(best)}
+  const bounds=[0,...cuts,all.length],out=[],used=new Set();
+  for(let i=0;i+1<bounds.length;i++){const ss=all.slice(bounds[i],bounds[i+1]);if(!ss.length)continue;
+    const gen=AUTO_ASP.slice(-3).find(([re])=>ss.filter(s=>re.test(" "+norm(s)+" ")).length>=Math.max(2,Math.ceil(ss.length/2)));
+    let h=i===0?"Umumiy ma'lumot":gen?gen[1]:kwTitle(ss,all,topicKeys)||"Asosiy ma'lumotlar";let j=2;const h0=h;while(used.has(h))h=h0+" ("+(j++)+")";used.add(h);out.push({head:h,sents:ss,src:""})}
+  return out}
+function autoSections(secs,count,topic){
+  const all=secs.flatMap(s=>s.sents);if(!all.length)return secs;
+  const topicKeys=keyStems(topic||"").map(k=>k.slice(0,6));
+  // 1) har gapga mavzu belgisi; belgisiz gap oldingi gapga ergashadi
+  let lab=all.map(sentAsp);
+  // mavzu jihatlari (iqlim, aholi…) matnga mos kelsa — shu bo'yicha; aks holda kalit so'zlar bo'yicha bo'linadi
+  const tk=norm(topic||"");lab=lab.map(l=>l>=0&&AUTO_ASP[l][0].test(" "+tk+" ")?-1:l);
+  const strongA=new Set(lab.filter((l,i)=>l>=0&&lab.filter(x=>x===l).length>=2));
+  if(strongA.size<Math.min(3,count))return kwSections(all,count,topicKeys);
+  lab=lab.map(l=>strongA.has(l)?l:-1);let prev=-2;const lab2=lab.map(l=>{if(l>=0){prev=l;return l}return prev});
+  const groups=[];const byKey=new Map();
+  all.forEach((s,i)=>{const k=lab2[i];let g=byKey.get(k);if(!g){g={k,sents:[],first:i};byKey.set(k,g);groups.push(g)}g.sents.push(s)});
+  // juda kichik guruhlar (1 gap) qo'shniga qo'shiladi
+  let gs=groups.filter(g=>g.sents.length>=2||groups.length<=count);
+  const lost=groups.filter(g=>!gs.includes(g));lost.forEach(g=>{const tgt=gs.filter(x=>x.first<g.first).pop()||gs[0];if(tgt)tgt.sents.push(...g.sents)});
+  gs.sort((a,b)=>a.first-b.first);
+  const title=g=>g.k>=0?AUTO_ASP[g.k][1]:(g.first===0?"Umumiy ma'lumot":"");
+  gs.forEach(g=>g.head=title(g));
+  // 2) guruh ko'p bo'lsa — eng kichiklari qo'shniga birlashtiriladi
+  gs.forEach(g=>g.ks=new Set([g.k]));const NAT=new Set([2,3,4,5,6]);
+  while(gs.length>count){let mi=-1,mv=1e9;gs.forEach((g,i)=>{if(i>0){const v=g.sents.length+gs[i-1].sents.length;if(v<mv){mv=v;mi=i}}});if(mi<0)break;
+    const a=gs[mi-1],b=gs[mi];const big=a.sents.length>=b.sents.length?a:b;a.sents=a.sents.concat(b.sents);b.ks.forEach(k=>a.ks.add(k));
+    const ks=[...a.ks].filter(k=>k>=0);
+    if(ks.length>1&&ks.every(k=>NAT.has(k)))a.head="Tabiiy sharoiti";
+    else if(ks.length>1&&ks.includes(0)&&ks.every(k=>k===0||NAT.has(k)))a.head="Geografik o'rni va tabiiy sharoiti";
+    else if(a.head&&b.head&&a.head!=="Umumiy ma'lumot"&&!/ va |,/.test(a.head+b.head)&&(a.head+b.head).length<40)a.head=a.head+" va "+b.head.charAt(0).toLowerCase()+b.head.slice(1);
+    else a.head=big.head||a.head||b.head;
+    gs.splice(mi,1)}
+  // 3) guruh kam bo'lsa — eng kattasi ikkiga bo'linadi
+  while(gs.length<count){let mi=0;gs.forEach((g,i)=>{if(g.sents.length>gs[mi].sents.length)mi=i});const g=gs[mi];if(g.sents.length<4)break;
+    const h=Math.ceil(g.sents.length/2),h2=g.k>=0&&!g.split?AUTO_ASP[g.k][2]:"",nb={k:g.k,split:1,ks:new Set([g.k]),sents:g.sents.slice(h),first:g.first+h,head:h2&&!gs.some(x=>x.head===h2)?h2:""};g.split=1;g.sents=g.sents.slice(0,h);gs.splice(mi+1,0,nb)}
+  // 4) nomsiz guruhlarga kalit so'zlardan nom
+  const usedH=new Set();
+  gs.forEach((g,i)=>{if(!g.head){g.head=kwTitle(g.sents,all,topicKeys)||(i===0?"Umumiy ma'lumot":"Asosiy ma'lumotlar")}
+    let h=g.head,j=2;while(usedH.has(h)){const alt=kwTitle(g.sents,all,topicKeys);h=alt&&!usedH.has(alt)?alt:g.head+" ("+(j++)+")"}g.head=h;usedH.add(h)});
+  return gs.map(g=>({head:g.head,sents:g.sents,src:""}))}
 async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(topic)){needCode();return}
   CH=deck.design==="dars"?{n:4,len:560}:{n:5,len:640};const t=$("#manual").value.trim();if(!t){setStatus("Avval PDF, skrinshot yoki matn orqali ma'lumot bering.",true);return}
   const title=cap(topic||"Taqdimot"),n=+$("#count").value,pm=$("#planType").value;
   if(pm==="manual"&&!parsePlan($("#planText").value).length){setStatus("Rejangizni yozing: har bir bandni yangi qatorga.",true);$("#planText").focus();return}
   let secs=textToSections(t,title);if(!secs.length){setStatus("Matndan gap ajratib bo'lmadi. Matnni tekshiring.",true);return}
-  const wantItems=+$("#planCount").value;if(pm!=="manual"&&secs.length<Math.min(3,wantItems))secs=splitPlain(secs,wantItems);
+  const wantItems=+$("#planCount").value;if(pm!=="manual"&&secs.length<wantItems){secs=autoSections(secs,wantItems,topic);setStatus("Matn mazmuniga qarab reja tuzildi.")}
   $("#fromText").disabled=true;
   try{
     let pl;if(pm==="manual")pl=distributeLeft(await fillPlan(parsePlan($("#planText").value),secs,{offline:true,topic:title,slides:n}),secs);
