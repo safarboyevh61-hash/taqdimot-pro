@@ -265,6 +265,7 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 .lock p{margin:0;color:var(--muted);font-size:14px}
 .lock .req{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lock .req code{font:800 24px/1 "Courier New",ui-monospace,monospace;letter-spacing:.08em;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;user-select:all}
+.lock .codebox{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:10px}.lock .codebox small{color:var(--muted);font-size:13px}
 .lock .row2{display:flex;gap:8px}.lock .row2 input{flex:1;min-width:0;text-transform:none;font-size:18px!important;letter-spacing:.06em}
 .lock .ok{background:#e8f5e9;color:#1b5e20;border-radius:10px;padding:10px 12px;font-weight:600}
 .lock .bad{color:var(--warn);font-weight:600;font-size:14px;min-height:1.2em}
@@ -1115,10 +1116,10 @@ function newReq(){let r="";const u=new Uint32Array(8);try{crypto.getRandomValues
 const normCode=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 function accessFor(req){return enc(h53(SALT+"|"+normCode(req)),6)}
 function getReq(){let r=lsGet("tp_req");if(!r){r=newReq();lsSet("tp_req",r)}return r}
-const isDev=()=>lsGet("tp_dev")==="1";
+const isDev=()=>lsGet("tp_dev")==="1",isUnlim=()=>lsGet("tp_unlim")==="1";
 const hasCredit=()=>lsGet("tp_credit")==="1";
-function canCreate(topic){return isDev()||hasCredit()||(lsGet("tp_used_topic")&&lsGet("tp_used_topic")===norm(topic||""))}
-function consumeCredit(topic){if(isDev())return;if(hasCredit()){lsSet("tp_credit",null);lsSet("tp_used_topic",norm(topic||""));lsSet("tp_req",newReq())}renderLock()}
+function canCreate(topic){return isDev()||isUnlim()||hasCredit()||(lsGet("tp_used_topic")&&lsGet("tp_used_topic")===norm(topic||""))}
+function consumeCredit(topic){if(isDev()||isUnlim())return;if(hasCredit()){lsSet("tp_credit",null);lsSet("tp_used_topic",norm(topic||""));lsSet("tp_req",newReq())}renderLock()}
 function tgText(){return `Assalomu alaykum! "Taqdimot Pro" uchun 8 000 so'm to'ladim. So'rov kodim: ${getReq()}`}
 function renderLock(){
   const box=$("#lockBox");if(!box)return;
@@ -1132,17 +1133,25 @@ function renderLock(){
       $("#devCopy").onclick=()=>copyPlain(c,$("#devCopy"))};
     $("#devGen").onclick=gen;$("#devReq").addEventListener("keydown",e=>{if(e.key==="Enter")gen()});
     $("#devExit").onclick=()=>{lsSet("tp_dev",null);renderLock()};updateGo();return}
+  if(isUnlim()){box.className="lock open";box.innerHTML=`<h2>✅ Cheksiz kirish ochiq</h2><div class="ok">Promo kod faollashtirilgan: taqdimotlarni cheksiz yaratishingiz mumkin.</div>`;updateGo();return}
   if(hasCredit()){box.className="lock open";box.innerHTML=`<h2>✅ Kirish ochiq</h2><div class="ok">Kod qabul qilindi. Endi 1 ta taqdimot yaratishingiz mumkin.</div>`;updateGo();return}
   const req=getReq();box.className="lock";box.innerHTML=`<h2>🔒 Slayd yaratish yopiq</h2>
-    <p>1) Kartaga 8 000 so'm o'tkazing. 2) Chek skrinshotini va quyidagi <b>so'rov kodini</b> dasturchiga Telegram'da yuboring. 3) Dasturchi bergan <b>kirish kodini</b> kiriting.</p>
+    <p>1) Kartaga 8 000 so'm o'tkazing. 2) Chek skrinshotini va quyidagi <b>so'rov kodini</b> Dasturchiga Telegram'dan yuboring. 3) Dasturchi bergan <b>kirish kodini</b> kiriting.</p>
     <div class="req"><span>So'rov kodingiz:</span><code id="reqCode">${req}</code><button type="button" id="reqCopy">Nusxa olish</button></div>
-    <div class="row2"><input id="accIn" type="text" placeholder="Kirish kodi" autocomplete="off" aria-label="Kirish kodi"><button type="button" class="primary" id="accGo" style="padding:11px 18px">Ochish</button></div>
+    <div class="codebox"><span class="lbl">🎟 Promo kod (foydalanuvchilar uchun)</span><small>Promo kod yoki to'lovdan keyin dasturchi bergan kirish kodini yozing.</small>
+      <div class="row2"><input id="accIn" type="text" placeholder="Promo kod" autocomplete="off" aria-label="Promo kod"><button type="button" class="primary" id="accGo" style="padding:11px 18px">Ochish</button></div></div>
+    <div class="codebox"><span class="lbl">👨‍💻 Dasturchi uchun kirish kodi</span>
+      <div class="row2"><input id="devIn" type="password" placeholder="Dasturchi kodi" autocomplete="off" aria-label="Dasturchi uchun kirish kodi"><button type="button" id="devGo" style="padding:11px 18px">Kirish</button></div></div>
     <div class="bad" id="accErr"></div>`;
   $("#reqCopy").onclick=()=>copyPlain(req,$("#reqCopy"));
-  const tryCode=()=>{const v=$("#accIn").value.trim();if(!v)return;
+  const tryDev=()=>{const v=$("#devIn").value.trim();if(!v)return;
     if(v.toLowerCase()===DEV_CODE){lsSet("tp_dev","1");renderLock();setStatus("Dasturchi rejimi yoqildi.");return}
+    $("#accErr").textContent="Dasturchi kodi noto'g'ri."};
+  $("#devGo").onclick=tryDev;$("#devIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryDev()});
+  const tryCode=()=>{const v=$("#accIn").value.trim();if(!v)return;
+    if(normCode(v)==="KURSDOSHLAR"){lsSet("tp_unlim","1");renderLock();setStatus("Promo kod qabul qilindi ✓ Endi cheksiz taqdimot yaratishingiz mumkin.");return}
     if(normCode(v)===accessFor(req)){lsSet("tp_credit","1");renderLock();setStatus("Kod qabul qilindi. Mavzuni yozib «Slayd yaratish»ni bosing.");return}
-    $("#accErr").textContent="Kod noto'g'ri. Kodni dasturchidan oling va qaytadan kiriting."};
+    $("#accErr").textContent="Promo kod noto'g'ri. Tekshirib, qaytadan kiriting."};
   $("#accGo").onclick=tryCode;$("#accIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryCode()});
   updateGo()}
 function updateGo(){const g=$("#go");if(!g)return;const ok=canCreate($("#topic")&&$("#topic").value.trim());g.textContent=ok?"Slayd yaratish":"🔒 Slayd yaratish (kirish kodi kerak)"}
