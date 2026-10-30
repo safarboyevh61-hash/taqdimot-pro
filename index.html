@@ -1236,10 +1236,16 @@ async function generate(force){
     if(count()<need){try{const ml=await api(lang,{action:"query",list:"search",srsearch:"morelike:"+main.title,srlimit:8});
       rel=[...new Set(rel.concat(((ml.query&&ml.query.search)||[]).map(h=>h.title)))].filter(t=>t!==main.title)}catch(_){}}
     // "Livan ta'lim tizimi" kabi boshqa narsaga xoslangan maqolalar olinmaydi
-    const tn=norm(topic||main.title);rel=rel.filter(t=>onTopic(t)&&!(norm(t).endsWith(tn)&&norm(t)!==tn)&&!(norm(t).endsWith(norm(main.title))&&norm(t)!==norm(main.title)));
+    const tn=norm(topic||main.title);
+    // mavzuda aniq nom + jihat bo'lsa ("Buyuk Britaniya ta'lim tizimi"), qo'shimcha maqola ikkalasiga ham tegishli bo'lishi shart:
+    // "Gibraltarda ta'lim tizimi" (boshqa davlat) va "Kanada — Buyuk Britaniya munosabatlari" (boshqa jihat) olinmaydi
+    const coreK=keyStems(topic||main.title).filter(k=>!GENERIC.test(k)&&!STOP.has(k)&&!CLS.test(k)),aspK=coreK.filter(k=>ASP.some(([re])=>re.test(k))),entK=coreK.filter(k=>!aspK.includes(k));
+    const aspT=aspK.length?aspectTerms(aspK):[];
+    const fitsBoth=t=>{const x=norm(t);if(aspK.length&&!aspT.some(w=>x.includes(w)))return false;if(aspK.length&&entK.length&&!entK.some(k=>relevance(t,[k])>0))return false;return true};
+    rel=rel.filter(t=>onTopic(t)&&fitsBoth(t)&&!(norm(t).endsWith(tn)&&norm(t)!==tn)&&!(norm(t).endsWith(norm(main.title))&&norm(t)!==norm(main.title)));
     // to'liq matnli qidiruv natijalari ham (sarlavhasida mavzu so'zi bo'lmasa ham, matni mavzuga oid bo'lsa)
     if(sentTotal()<wantS()){try{const sr=await api(lang,{action:"query",list:"search",srsearch:topic||main.title,srlimit:12});
-      ((sr.query&&sr.query.search)||[]).forEach(h=>{if(h.title!==main.title&&!rel.includes(h.title))rel.push("~"+h.title)})}catch(_){}}
+      ((sr.query&&sr.query.search)||[]).forEach(h=>{if(h.title!==main.title&&!rel.includes(h.title)&&fitsBoth(h.title))rel.push("~"+h.title)})}catch(_){}}
     for(let t of rel){if(sentTotal()>=wantS())break;
       const loose=t.startsWith("~");if(loose)t=t.slice(1);if(sources.some(x=>x.title===t))continue;
       setStatus(`Qo'shimcha manba o'qilmoqda: «${t}»…`);
