@@ -312,6 +312,15 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 .cb-own{color:var(--accent);font-weight:700}
 .tgway{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
 .tgway>b{font-size:14px}
+.myimg{display:flex;flex-direction:column;gap:8px;border:1px dashed var(--accent);border-radius:12px;padding:12px;background:var(--bg)}
+.myimg small{color:var(--muted);font-size:13px;line-height:1.4}
+.myimg-list{display:flex;flex-wrap:wrap;gap:6px}
+.myimg-list:empty{display:none}
+.myimg-list .mi{position:relative;width:62px;height:62px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.myimg-list .mi img{width:100%;height:100%;object-fit:cover}
+.myimg-list .mi button{position:absolute;top:2px;right:2px;width:22px;height:22px;padding:0;border-radius:50%;font-size:13px;line-height:20px;background:rgba(0,0,0,.6);color:#fff;border:0}
+.myimg-list .mi-info{flex-basis:100%;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.myimg-list .mi-info button{padding:6px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -399,6 +408,10 @@ AQShda maktab ta'limi
 Oliy ta'lim
 Ta'limni moliyalashtirish"></textarea>
       <small style="color:var(--muted);font-size:13px">Ilova har bir band bo'yicha ma'lumotni alohida qidiradi va slaydlarni shu reja tartibida tuzadi.</small></div>
+    <div class="myimg"><span class="lbl">🖼 O'z rasmlaringiz (ixtiyoriy)</span>
+      <small>Xohlasangiz, rasmlarni slaydga o'zingiz tanlab qo'yishingiz mumkin. Nechta rasm bo'lsa ham yuklang — men ularni har bir reja bandiga moslab qo'yib beraman.</small>
+      <div class="filebtn"><button type="button" tabindex="-1">📷 Rasmlarni yuklash</button><input id="myImgs" type="file" accept="image/*" multiple aria-label="Slaydlar uchun rasmlar"></div>
+      <div id="myImgList" class="myimg-list"></div></div>
     <button class="primary" id="go">Slayd yaratish</button>
     <div class="status" id="status" role="status"></div>
     <div class="src-box">
@@ -1264,6 +1277,8 @@ async function generate(force){
     // "Yorqin dars": katta yon rasm juft slaydlarda (fon rasmlaridan farqli)
     r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
     await enrichCards(r.slides,lang,main.title);
+    const myP=placeMyImgs(r.slides);
+    if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
     deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:f.others.filter(t=>t!==main.title),lang});
     save();render();consumeCredit(topic);
     const warn=focused?`«${topic}» bo'yicha ma'lumot ${sources.length} ta maqoladan saralab olindi. `:!force&&!f.exact?`«${topic}» mavzusi uchun ma'lumot «${main.title}» maqolasidan olindi. Boshqa maqola kerak bo'lsa, pastdagi ro'yxatdan tanlang. `:"";
@@ -1386,11 +1401,101 @@ async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(top
     const src=deck.srcName?[`${deck.srcName} — foydalanuvchi taqdim etgan manba.`]:["Foydalanuvchi taqdim etgan matn."];
     const r=buildPlanSlides(title,secs,pl,pm,pool,n,[],src);
     r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
+    const placed=placeSrcImgs(r.slides);if(placed)pool=SRC_IMGS.map(z=>z.url).concat(pool);
+    const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
     deck=Object.assign(deck,{title,slides:r.slides,sources:[],pool});save();render();consumeCredit(topic);
-    setStatus(`Tayyor: ${r.slides.length} ta slayd, sizning matningiz asosida${r.empty?`. ${r.empty} ta band uchun matnda ma'lumot topilmadi — o'zingiz to'ldiring`:""}.`,!!r.empty);
+    setStatus(`Tayyor: ${r.slides.length} ta slayd, sizning matningiz asosida${placed?` (${placed} ta rasm PDF/skrinshotlardan)`:""}${myP?`, ${myP} ta o'z rasmingiz qo'yildi`:""}${r.empty?`. ${r.empty} ta band uchun matnda ma'lumot topilmadi — o'zingiz to'ldiring`:""}.`,!!r.empty);
     window.scrollTo({top:$("#deck").offsetTop-10,behavior:"smooth"})}
   finally{$("#fromText").disabled=false}}
 
+/* ---------- PDF va skrinshotlardagi rasmlarni ajratib olish ---------- */
+let SRC_IMGS=[];
+function toJpeg(src,sx,sy,sw,sh,max){max=max||900;const k=Math.min(1,max/Math.max(sw,sh)),c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+  x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.82)}
+function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>res(im);im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("rasm"))};im.src=u})}
+// skrinshot ichidagi fotosurat/xarita qismlarini topish (matnli joylardan ajratib)
+function findPhotos(src){
+  const W0=src.naturalWidth||src.width,H0=src.naturalHeight||src.height;if(!W0||!H0)return[];
+  const AW=240,sc=AW/W0,AH=Math.max(1,Math.round(H0*sc)),c=document.createElement("canvas");c.width=AW;c.height=AH;
+  const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(src,0,0,AW,AH);const d=x.getImageData(0,0,AW,AH).data;
+  const CS=8,cw=Math.ceil(AW/CS),chh=Math.ceil(AH/CS),cell=new Uint8Array(cw*chh);
+  for(let cy=0;cy<chh;cy++)for(let cx=0;cx<cw;cx++){let n=0,mid=0,wh=0,s=0,s2=0;
+    for(let y=cy*CS;y<Math.min(AH,cy*CS+CS);y++)for(let xx=cx*CS;xx<Math.min(AW,cx*CS+CS);xx++){const i=(y*AW+xx)*4,r=d[i],g=d[i+1],b=d[i+2];
+      const l=.299*r+.587*g+.114*b,sat=Math.max(r,g,b)-Math.min(r,g,b);n++;s+=l;s2+=l*l;if(l>215&&sat<35)wh++;else if(!(l<40&&sat<40))mid++}
+    const m=s/n,sd=Math.sqrt(Math.max(0,s2/n-m*m));cell[cy*cw+cx]=(wh/n<.45&&mid/n>.3)?1:0}
+  // bo'shliqlarni to'ldirish (yopish)
+  const cl=cell.slice();for(let cy=0;cy<chh;cy++)for(let cx=0;cx<cw;cx++){if(cell[cy*cw+cx])continue;
+    const h=(cx>0&&cell[cy*cw+cx-1])&&(cx<cw-1&&cell[cy*cw+cx+1]),v=(cy>0&&cell[(cy-1)*cw+cx])&&(cy<chh-1&&cell[(cy+1)*cw+cx]);if(h||v)cl[cy*cw+cx]=1}
+  // ingichka chiziq va ramkalarni uzish (eroziya): hamma 4 qo'shnisi rasm bo'lgan katakchalar qoladi
+  const er=new Uint8Array(cw*chh);for(let cy=1;cy<chh-1;cy++)for(let cx=1;cx<cw-1;cx++){const k=cy*cw+cx;if(cl[k]&&cl[k-1]&&cl[k+1]&&cl[k-cw]&&cl[k+cw])er[k]=1}
+  for(let k=0;k<cl.length;k++)cl[k]=er[k];
+  const seen=new Uint8Array(cw*chh),boxes=[];
+  for(let i=0;i<cl.length;i++){if(!cl[i]||seen[i])continue;let x0=1e9,y0=1e9,x1=-1,y1=-1,cnt=0;const st=[i];seen[i]=1;
+    while(st.length){const j=st.pop(),cx=j%cw,cy=(j/cw)|0;cnt++;x0=Math.min(x0,cx);x1=Math.max(x1,cx);y0=Math.min(y0,cy);y1=Math.max(y1,cy);
+      for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=cw||ny>=chh)continue;const k=ny*cw+nx;if(cl[k]&&!seen[k]){seen[k]=1;st.push(k)}}}
+    x0=Math.max(0,x0-1);y0=Math.max(0,y0-1);x1=Math.min(cw-1,x1+1);y1=Math.min(chh-1,y1+1);cnt+=2*(x1-x0+y1-y0);
+    const bw=x1-x0+1,bh=y1-y0+1;if(bw<5||bh<5)continue;if(cnt/(bw*bh)<.5)continue;if(bw*bh<cw*chh*.04)continue;if(bw/bh>4||bh/bw>4)continue;
+    {let s=0,s2=0,n=0;for(let y=y0*CS;y<Math.min(AH,(y1+1)*CS);y+=2)for(let xx=x0*CS;xx<Math.min(AW,(x1+1)*CS);xx+=2){const i=(y*AW+xx)*4,l=.299*d[i]+.587*d[i+1]+.114*d[i+2];s+=l;s2+=l*l;n++}
+      const m=s/n;if(Math.sqrt(Math.max(0,s2/n-m*m))<24)continue // bir xil rangli panel — surat emas
+      const bins=new Map();let tot=0;for(let y=y0*CS;y<Math.min(AH,(y1+1)*CS);y+=2)for(let xx=x0*CS;xx<Math.min(AW,(x1+1)*CS);xx+=2){const i=(y*AW+xx)*4,k=(d[i]>>5)*64+(d[i+1]>>5)*8+(d[i+2]>>5);bins.set(k,(bins.get(k)||0)+1);tot++}
+      if(Math.max(...bins.values())/tot>.45||[...bins.values()].filter(v=>v/tot>.015).length<7)continue} // tugma/panel (rang kam)
+    boxes.push([x0*CS/sc,y0*CS/sc,Math.min(W0,(x1+1)*CS/sc),Math.min(H0,(y1+1)*CS/sc)])}
+  return boxes.sort((a,b)=>a[1]-b[1]).slice(0,6).map(([a,b,c2,e])=>toJpeg(src,a,b,c2-a,e-b))}
+// PDF betidagi joylashtirilgan rasmlar
+async function pdfPageImages(pg){const out=[];try{const ops=await pg.getOperatorList(),O=pdfjsLib.OPS,names=[];
+  ops.fnArray.forEach((fn,i)=>{if(fn===O.paintImageXObject||fn===O.paintJpegXObject||fn===O.paintImageXObjectRepeat){const n=ops.argsArray[i][0];if(typeof n==="string"&&!names.includes(n))names.push(n)}});
+  for(const n of names.slice(0,8)){const store=n.startsWith("g_")?pg.commonObjs:pg.objs;
+    const im=await new Promise(res=>{try{store.get(n,res)}catch(_){res(null)}setTimeout(()=>res(null),4000)});if(!im)continue;
+    const w=im.width,h=im.height;if(!w||!h||w<160||h<120||w/h>4||h/w>4)continue;
+    let src=im.bitmap||im.image;if(!src&&im.data){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d"),id=x.createImageData(w,h),o=id.data,s=im.data;
+      if(im.kind===3||s.length===w*h*4)o.set(s);else if(im.kind===2||s.length===w*h*3){for(let p=0,q=0;p<w*h;p++){o[q++]=s[p*3];o[q++]=s[p*3+1];o[q++]=s[p*3+2];o[q++]=255}}
+      else if(s.length>=Math.ceil(w/8)*h){const rb=Math.ceil(w/8);for(let y=0;y<h;y++)for(let xx=0;xx<w;xx++){const bit=(s[y*rb+(xx>>3)]>>(7-(xx&7)))&1,q=(y*w+xx)*4,v=bit?255:0;o[q]=o[q+1]=o[q+2]=v;o[q+3]=255}}
+      else continue;x.putImageData(id,0,0);src=c}
+    if(!src)continue;
+    // deyarli bir xil rangli (bo'sh) rasmlar tashlanadi
+    const t=document.createElement("canvas");t.width=24;t.height=24;const tx=t.getContext("2d",{willReadFrequently:true});tx.drawImage(src,0,0,24,24);const dd=tx.getImageData(0,0,24,24).data;
+    let s=0,s2=0;for(let p=0;p<dd.length;p+=4){const l=(dd[p]+dd[p+1]+dd[p+2])/3;s+=l;s2+=l*l}const m=s/576;if(Math.sqrt(Math.max(0,s2/576-m*m))<10)continue;
+    out.push(toJpeg(src,0,0,w,h))}}catch(_){}return out}
+function addSrcImgs(list,ctx){list.forEach(u=>{if(SRC_IMGS.length<40&&!SRC_IMGS.some(z=>z.url===u))SRC_IMGS.push({url:u,ctx:String(ctx||"").slice(0,1500)})})}
+// foydalanuvchi rasmlarini mazmuni mos slaydlarga joylash
+function placeSrcImgs(slides){if(!SRC_IMGS.length)return 0;
+  const content=slides.map((s,i)=>({s,i})).filter(o=>o.s.type==="content"&&!o.s.kind&&!o.s.empty);if(!content.length)return 0;
+  const ks=t=>new Set(keyStems(t).map(k=>k.slice(0,5)));const sk=content.map(o=>ks(o.s.title+" "+(o.s.bullets||[]).join(" ")));
+  const cnt=new Map();let placed=0;
+  SRC_IMGS.forEach((im,idx)=>{const ik=ks(im.ctx);let best=-1,bv=-1;
+    content.forEach((o,j)=>{let v=0;ik.forEach(k=>{if(sk[j].has(k))v++});v=v/(1+(cnt.get(j)||0)*3);if(v>bv){bv=v;best=j}});
+    if(best<0||bv<=0)best=Math.min(content.length-1,Math.floor(idx*content.length/SRC_IMGS.length));
+    if((cnt.get(best)||0)>=3){const free=content.findIndex((_,j)=>!(cnt.get(j)));if(free<0)return;best=free}
+    const s=content[best].s,list=[...imgs(s)];list.splice(cnt.get(best)||0,0,im.url);s.imgs=list.slice(0,4);s.img="";
+    if(!cnt.get(best)&&s.side)s.side=im.url;cnt.set(best,(cnt.get(best)||0)+1);placed++});
+  return placed}
+/* ---------- foydalanuvchining o'z rasmlari: har bir reja bandiga moslab qo'yiladi ---------- */
+let MY_IMGS=[];
+function renderMyImgs(){const box=$("#myImgList");if(!box)return;
+  box.innerHTML=MY_IMGS.map((m,i)=>`<div class="mi"><img src="${m.url}" alt="${i+1}-rasm"><button type="button" data-i="${i}" aria-label="Olib tashlash">✕</button></div>`).join("")+
+    (MY_IMGS.length?`<div class="mi-info"><span>${MY_IMGS.length} ta rasm tanlandi — slayd yaratilganda reja bandlariga qo'yiladi.</span><button type="button" id="myImgClear">Hammasini o'chirish</button></div>`:"");
+  box.querySelectorAll(".mi button").forEach(b=>b.onclick=()=>{MY_IMGS.splice(+b.dataset.i,1);renderMyImgs()});
+  const c=$("#myImgClear");if(c)c.onclick=()=>{MY_IMGS=[];renderMyImgs()}}
+if($("#myImgs"))$("#myImgs").onchange=async e=>{const fs=[...e.target.files];e.target.value="";let n=0;
+  for(const f of fs){try{const im=await loadImg(f);const w=im.naturalWidth,h=im.naturalHeight;MY_IMGS.push({url:toJpeg(im,0,0,w,h,1100),ctx:f.name.replace(/\.[a-z0-9]+$/i,"").replace(/[_-]+/g," ")});URL.revokeObjectURL(im.src);n++}catch(_){}}
+  renderMyImgs();setStatus(n?`${n} ta rasm qo'shildi. Slayd yaratilganda ular reja bandlariga moslab qo'yiladi.`:"Rasmni ochib bo'lmadi.",!n)};
+function placeMyImgs(slides){if(!MY_IMGS.length)return 0;
+  const content=slides.filter(s=>s.type==="content"&&!s.kind);if(!content.length)return 0;
+  // reja bandlari bo'yicha guruhlash ("1. Iqlimi", "1. Iqlimi" …)
+  const items=[];content.forEach(s=>{const m=String(s.title||"").match(/^(\d+)\./),k=m?m[1]:s.title;let it=items.find(x=>x.k===k);if(!it){it={k,title:s.title,slides:[],n:0};items.push(it)}it.slides.push(s)});
+  const ks=t=>new Set(keyStems(t).map(k=>k.slice(0,5)));const ik=items.map(it=>ks(it.title+" "+it.slides.map(s=>(s.bullets||[]).join(" ")).join(" ")));
+  const left=[];
+  // fayl nomi band nomiga mos kelsa — o'sha bandga
+  MY_IMGS.forEach(m=>{const fk=ks(m.ctx);let best=-1,bv=0;items.forEach((it,j)=>{let v=0;fk.forEach(k=>{if(ik[j].has(k))v++});if(v>bv){bv=v;best=j}});
+    if(best>=0)items[best].q=(items[best].q||[]).concat(m.url);else left.push(m.url)});
+  // qolganlari — reja tartibida, har bandga navbat bilan
+  left.forEach((u,i)=>{const it=items.slice().sort((a,b)=>((a.q||[]).length-(b.q||[]).length))[0];it.q=(it.q||[]).concat(u)});
+  let placed=0;
+  items.forEach(it=>{(it.q||[]).forEach((u,i)=>{const s=it.slides[i%it.slides.length],round=Math.floor(i/it.slides.length);
+    const list=imgs(s).filter(x=>x!==u);list.splice(Math.min(round,list.length),0,u);s.imgs=list.slice(0,4);s.img="";
+    if(round===0){if(s.side||design().fam==="dars")s.side=u}placed++})});
+  return placed}
 /* ---------- PDF va skrinshotlardan matn olish ---------- */
 function srcStatus(t,err){const e=$("#srcStatus");e.textContent=t;e.className="status"+(err?" err":"")}
 function appendText(t){const m=$("#manual");m.value=(m.value.trim()?m.value.trim()+"\n\n":"")+t.trim();m.scrollTop=m.scrollHeight}
@@ -1404,10 +1509,14 @@ async function readPdf(file){
     if(txt.replace(/\s/g,"").length<20){empty++;
       // matni yo'q (skanerlangan) bet — rasm sifatida o'qiladi
       if(window.Tesseract){const vp=pg.getViewport({scale:2}),cn=document.createElement("canvas");cn.width=vp.width;cn.height=vp.height;await pg.render({canvasContext:cn.getContext("2d"),viewport:vp}).promise;
-        txt=await ocrImage(cn,`PDF ${i}-bet`)}}
+        txt=await ocrImage(cn,`PDF ${i}-bet`);addSrcImgs(findPhotos(cn),txt)}}
+    else{let ims=await pdfPageImages(pg);
+      if(!ims.length&&i<=40){try{const vp=pg.getViewport({scale:1.5}),cn=document.createElement("canvas");cn.width=vp.width;cn.height=vp.height;
+        await pg.render({canvasContext:cn.getContext("2d"),viewport:vp}).promise;ims=findPhotos(cn)}catch(_){}}
+      addSrcImgs(ims,txt)}
     parts.push(txt)}
   deck.srcName=file.name.replace(/\.pdf$/i,"");appendText(parts.join("\n\n"));
-  srcStatus(`Tayyor: ${pdf.numPages} betli PDF o'qildi${empty?` (${empty} ta skanerlangan bet rasm sifatida o'qildi)`:""}. Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
+  srcStatus(`Tayyor: ${pdf.numPages} betli PDF o'qildi${empty?` (${empty} ta skanerlangan bet rasm sifatida o'qildi)`:""}${SRC_IMGS.length?`, ${SRC_IMGS.length} ta rasm olindi`:""}. Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
 let OCR=null;
 async function ocrImage(img,label){
   if(!window.Tesseract)throw new Error("Rasmdan matn o'qish kutubxonasi yuklanmadi. Internetni tekshiring.");
@@ -1415,13 +1524,14 @@ async function ocrImage(img,label){
   const r=await OCR.recognize(img);return r.data.text||""}
 $("#srcPdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{await readPdf(f)}catch(err){srcStatus("PDF faylni o'qib bo'lmadi: "+err.message,true)}};
 $("#srcImg").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;let ok=0;
-  try{for(const[i,f]of fs.entries()){srcStatus(`${i+1}-rasm o'qilmoqda (jami ${fs.length} ta)…`);const t=await ocrImage(f,`${i+1}/${fs.length}-rasm`);if(t.trim()){appendText(t);ok++}}
+  try{for(const[i,f]of fs.entries()){srcStatus(`${i+1}-rasm o'qilmoqda (jami ${fs.length} ta)…`);const t=await ocrImage(f,`${i+1}/${fs.length}-rasm`);if(t.trim()){appendText(t);ok++}
+      try{const im=await loadImg(f);addSrcImgs(findPhotos(im),t);URL.revokeObjectURL(im.src)}catch(_){}}
     if(!deck.srcName)deck.srcName="Foydalanuvchi skrinshotlari";
-    srcStatus(`Tayyor: ${ok} ta rasmdan matn o'qildi. Xatolar bo'lishi mumkin — matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`,!ok)}
+    srcStatus(`Tayyor: ${ok} ta rasmdan matn o'qildi${SRC_IMGS.length?`, ${SRC_IMGS.length} ta surat ajratib olindi`:""}. Xatolar bo'lishi mumkin — matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`,!ok)}
   catch(err){srcStatus("Rasmni o'qib bo'lmadi: "+err.message,true)}};
 document.querySelectorAll(".src-t").forEach(b=>b.onclick=()=>{document.querySelectorAll(".src-t").forEach(x=>x.classList.toggle("on",x===b));
   document.querySelectorAll(".src-p").forEach(p=>p.hidden=p.dataset.p!==b.dataset.src);srcMode(b.dataset.src);if(b.dataset.src==="txt")$("#manual").focus()});
-$("#srcClear").onclick=()=>{$("#manual").value="";deck.srcName="";srcStatus("")};
+$("#srcClear").onclick=()=>{$("#manual").value="";deck.srcName="";SRC_IMGS=[];srcStatus("")};
 $("#manual").addEventListener("paste",()=>{if(!deck.srcName)deck.srcName=""});
 
 /* ---------- slaydlarni chizish ---------- */
@@ -1584,7 +1694,7 @@ function colorize(t,k){const parts=t.split(/(\s+)/);let ci=k,first=true,inQ=fals
     first=false;out+=`<span style="color:${red?"#e3241b":base}">${esc(w)}</span>`;prevRed=red;
     if(/[»"”]/.test(w))inQ=false;
     if(/[,;:—]$/.test(w)||w==="—")ci++});return out}
-function capOf(u){try{let f=decodeURIComponent(u.split("/").pop()).replace(/^\d+px-/,"").replace(/\.(jpe?g|png)$/i,"").replace(/[_]+/g," ").replace(/\(.*?\)/g,"")
+function capOf(u){if(/^data:/.test(u||""))return"";try{let f=decodeURIComponent(u.split("/").pop()).replace(/^\d+px-/,"").replace(/\.(jpe?g|png)$/i,"").replace(/[_]+/g," ").replace(/\(.*?\)/g,"")
   .replace(/\b(IMG|DSC|DSCN|DCIM|PIC|Photo)\b.*$/i,"").replace(/\b(1[89]|20)\d{2}\b.*$/,"").replace(/[\s,-]+\d*$/,"").trim();
   if(f.length<3||/^\d/.test(f))return"";return f.length>30?f.slice(0,28).replace(/\s\S*$/,"")+"…":f}catch(_){return""}}
 const WINGS=n=>`<svg class="dr-no" viewBox="0 0 155 90"><g fill="#ffd84a" stroke="#0d2569" stroke-width="2.4" stroke-linejoin="round">
