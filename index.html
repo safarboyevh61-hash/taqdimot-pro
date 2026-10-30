@@ -1386,6 +1386,21 @@ function autoSections(secs,count,topic){
   gs.forEach((g,i)=>{if(!g.head){g.head=kwTitle(g.sents,all,topicKeys)||(i===0?"Umumiy ma'lumot":"Asosiy ma'lumotlar")}
     let h=g.head,j=2;while(usedH.has(h)){const alt=kwTitle(g.sents,all,topicKeys);h=alt&&!usedH.has(alt)?alt:g.head+" ("+(j++)+")"}g.head=h;usedH.add(h)});
   return gs.map(g=>({head:g.head,sents:g.sents,src:""}))}
+// matn/PDF/skrinshot usuli uchun: mavzuga oid maqolalardagi haqiqiy kitoblar
+async function topicRefs(lang,topic){
+  const f=await findMain(lang,topic),srcs=[];if(f.main)srcs.push({title:f.main});
+  let ent=null;try{ent=await detectEntity(lang,topic)}catch(_){}
+  if(ent&&!srcs.some(s=>s.title===ent.title))srcs.unshift({title:ent.title});
+  if(!srcs.length)return[];
+  let refs=await collectRefs(lang,srcs[0].title,srcs);
+  const books=refs.filter(r=>!/https?:\/\//.test(r));
+  if(books.length<5){try{ // inglizcha "Education in Japan" kabi maqola kitoblari
+    const keys=keyStems(topic),ae=aspectEn(keys),base=ent?ent.title:srcs[0].title,enE=await langTitle(lang,base,"en");
+    const cands=[];if(enE&&ae)cands.push(`${cap(ae)} in ${enE}`,`${cap(ae)} in the ${enE}`);if(enE)cands.push(enE);
+    const have=new Set(refs.map(r=>norm(r).slice(0,40)));
+    for(const c of cands){if(refs.filter(r=>!/https?:\/\//.test(r)).length>=8)break;const r=await resolveTitle("en",c);if(!r)continue;
+      refsFrom(await wikitext("en",r.title)).books.forEach(b=>{const k=norm(b).slice(0,40);if(!have.has(k)){have.add(k);refs.splice(refs.filter(x=>!/https?:\/\//.test(x)).length,0,b)}})}}catch(_){}}
+  return refs.slice(0,14)}
 async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(topic)){needCode();return}
   CH=deck.design==="dars"?{n:4,len:560}:{n:5,len:640};const t=$("#manual").value.trim();if(!t){setStatus("Avval PDF, skrinshot yoki matn orqali ma'lumot bering.",true);return}
   const title=cap(topic||"Taqdimot"),n=+$("#count").value,pm=$("#planType").value;
@@ -1398,7 +1413,9 @@ async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(top
     else pl=planFromSecs(secs,pm,wantItems,n);
     // mavzuga oid rasmlar (internet bo'lsa)
     let pool=[];try{if(topic){setStatus("Mavzuga oid rasmlar qidirilmoqda…");const lang=$("#lang").value,f=await findMain(lang,topic);if(f.main){const m=await article(lang,f.main);pool=await collectImages(lang,m,[],n,[])}}}catch(_){}
-    const src=deck.srcName?[`${deck.srcName} — foydalanuvchi taqdim etgan manba.`]:["Foydalanuvchi taqdim etgan matn."];
+    // adabiyotlar: mavzu bo'yicha haqiqiy kitoblar (kamida 5 ta) — "skrinshot" deb yozilmaydi
+    let src=[];try{if(topic){setStatus("Adabiyotlar ro'yxati yig'ilmoqda…");src=await topicRefs($("#lang").value,topic)}}catch(_){}
+    if(!src.length)src=deck.srcName&&!/skrinshot/i.test(deck.srcName)?[`${deck.srcName}.`]:[];
     const r=buildPlanSlides(title,secs,pl,pm,pool,n,[],src);
     r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
     const placed=placeSrcImgs(r.slides);if(placed)pool=SRC_IMGS.map(z=>z.url).concat(pool);
@@ -1549,7 +1566,21 @@ function cleanOcr(data){const lines=ocrLines(data),paras=[];let cur="",lastP=nul
     const same=l.p&&l.p===lastP,join=cur&&(same?!(/[.!?:»”"]$/.test(cur)&&/^\p{Lu}/u.test(t)&&false):/^[\p{Ll}\d(,;]/u.test(t)||(!/[.!?:»”"]$/.test(cur)&&cur.length>60));
     if(join)cur=cur.replace(/-$/,"")+(cur.endsWith("-")?"":" ")+t;else{if(cur)paras.push(cur);cur=t}lastP=l.p}
   if(cur)paras.push(cur);
-  return paras.filter(p=>p.length>=12).join("\n")}
+  return paras.map(goodPara).filter(p=>p.length>=12).join("\n")}
+// gaplarni saralash: chala, aralash (jadval/rasm osti yozuvi) va belgili gaplar tashlanadi
+const ROMAN=/\((?:[^()]*?(yaponcha|xitoycha|koreyscha|inglizcha|ruscha|lotincha|arabcha|forscha|nemischa|fransuzcha|yun\.|lot\.|ingl\.|rus\.)[^()]*|[^()]*[?#@|{}<>=][^()]*)\)/gi;
+function wordOk(w){w=w.replace(/^[«"“(]+|[»"”),.;:!?…]+$/g,"");if(!w)return true;
+  if(/^\d+([.,]\d+)*(-?[\p{L}]+)?%?$/u.test(w))return true;if(/^[–—-]$/.test(w))return true;
+  return /^[A-Za-zʻʼ‘’'-]{1,}$/.test(w)&&(/[aeiouAEIOU]/.test(w)||w.length<=2)&&!/[A-Z]{2,}[a-z]|[a-z][A-Z]/.test(w)&&(w.length>1||/^[ivabIVAB]$/.test(w))}
+function goodPara(p){
+  p=p.replace(ROMAN,"").replace(/\s+([,.;:])/g,"$1").replace(/\s{2,}/g," ").trim();
+  // qisqa sarlavha qatori saqlanadi
+  if(p.length<=70&&!/[.!?]$/.test(p)&&/^\p{Lu}/u.test(p)&&p.split(" ").length<=8)return p.split(" ").every(wordOk)?p:"";
+  const ss=sentences(p).filter(s=>{s=s.trim();if(s.length<35||s.length>420)return false;
+    if(!/^[\p{Lu}\d«"“]/u.test(s)||!/[.!?»”"]$/.test(s)||/…$|\.\.\.$/.test(s))return false;
+    if(/[?:]\)|:\?|\?\w|\b\w{1,2}:\w/.test(s))return false;
+    const ws=s.split(/\s+/),ok=ws.filter(wordOk).length;return ok/ws.length>=.9});
+  return ss.join(" ")}
 $("#srcPdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{await readPdf(f)}catch(err){srcStatus("PDF faylni o'qib bo'lmadi: "+err.message,true)}};
 $("#srcImg").onchange=async e=>{const fs=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name,undefined,{numeric:true}));e.target.value="";if(!fs.length)return;let ok=0;
   try{for(const[i,f]of fs.entries()){srcStatus(`${i+1}-rasm o'qilmoqda (jami ${fs.length} ta)…`);const t=await ocrImage(f,`${i+1}/${fs.length}-rasm`);if(t.trim()){appendText(t);ok++}
