@@ -1415,7 +1415,8 @@ function toJpeg(src,sx,sy,sw,sh,max){max=max||900;const k=Math.min(1,max/Math.ma
   x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.82)}
 function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>res(im);im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("rasm"))};im.src=u})}
 // skrinshot ichidagi fotosurat/xarita qismlarini topish (matnli joylardan ajratib)
-function findPhotos(src){
+function findPhotos(src){return photoBoxes(src).map(([a,b,c2,e])=>toJpeg(src,a,b,c2-a,e-b))}
+function photoBoxes(src){
   const W0=src.naturalWidth||src.width,H0=src.naturalHeight||src.height;if(!W0||!H0)return[];
   const AW=240,sc=AW/W0,AH=Math.max(1,Math.round(H0*sc)),c=document.createElement("canvas");c.width=AW;c.height=AH;
   const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(src,0,0,AW,AH);const d=x.getImageData(0,0,AW,AH).data;
@@ -1441,7 +1442,7 @@ function findPhotos(src){
       const bins=new Map();let tot=0;for(let y=y0*CS;y<Math.min(AH,(y1+1)*CS);y+=2)for(let xx=x0*CS;xx<Math.min(AW,(x1+1)*CS);xx+=2){const i=(y*AW+xx)*4,k=(d[i]>>5)*64+(d[i+1]>>5)*8+(d[i+2]>>5);bins.set(k,(bins.get(k)||0)+1);tot++}
       if(Math.max(...bins.values())/tot>.45||[...bins.values()].filter(v=>v/tot>.015).length<7)continue} // tugma/panel (rang kam)
     boxes.push([x0*CS/sc,y0*CS/sc,Math.min(W0,(x1+1)*CS/sc),Math.min(H0,(y1+1)*CS/sc)])}
-  return boxes.sort((a,b)=>a[1]-b[1]).slice(0,6).map(([a,b,c2,e])=>toJpeg(src,a,b,c2-a,e-b))}
+  return boxes.sort((a,b)=>a[1]-b[1]).slice(0,6)}
 // PDF betidagi joylashtirilgan rasmlar
 async function pdfPageImages(pg){const out=[];try{const ops=await pg.getOperatorList(),O=pdfjsLib.OPS,names=[];
   ops.fnArray.forEach((fn,i)=>{if(fn===O.paintImageXObject||fn===O.paintJpegXObject||fn===O.paintImageXObjectRepeat){const n=ops.argsArray[i][0];if(typeof n==="string"&&!names.includes(n))names.push(n)}});
@@ -1520,10 +1521,37 @@ async function readPdf(file){
 let OCR=null;
 async function ocrImage(img,label){
   if(!window.Tesseract)throw new Error("Rasmdan matn o'qish kutubxonasi yuklanmadi. Internetni tekshiring.");
-  if(!OCR){srcStatus("Matn o'qish dasturi tayyorlanmoqda (birinchi marta 1–2 daqiqa)…");OCR=await Tesseract.createWorker("uzb+rus+eng",1,{logger:m=>{if(m.status==="recognizing text")srcStatus(`${label} o'qilmoqda… ${Math.round(m.progress*100)}%`)}})}
-  const r=await OCR.recognize(img);return r.data.text||""}
+  if(!OCR){srcStatus("Matn o'qish dasturi tayyorlanmoqda (birinchi marta 1–2 daqiqa)…");OCR=await Tesseract.createWorker("uzb+eng",1,{logger:m=>{if(m.status==="recognizing text")srcStatus(`${label} o'qilmoqda… ${Math.round(m.progress*100)}%`)}})}
+  let src=img;
+  // rasm ichidagi fotosuratlar oq bilan yopiladi — ulardan "tushunarsiz belgilar" o'qilmasin
+  try{const im=img instanceof Blob?await loadImg(img):img,W=im.naturalWidth||im.width,H=im.naturalHeight||im.height,boxes=photoBoxes(im);
+    const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.drawImage(im,0,0);x.fillStyle="#fff";boxes.forEach(([a,b,c2,e])=>x.fillRect(a,b,c2-a,e-b));src=c;
+    if(img instanceof Blob)URL.revokeObjectURL(im.src)}catch(_){}
+  const r=await OCR.recognize(src,{},{text:true,blocks:true});return cleanOcr(r.data)}
+// OCR natijasini tozalash: faqat aniq o'qilgan o'zbekcha (lotin) qatorlar, ketma-ket abzaslarga
+const OCR_SEEN=new Set();
+function ocrLines(data){const out=[];
+  (data.blocks||[]).forEach(b=>(b.paragraphs||[]).forEach(p=>{(p.lines||[]).forEach(l=>out.push({t:l.text,c:l.confidence,p}))}));
+  if(!out.length&&data.lines)data.lines.forEach(l=>out.push({t:l.text,c:l.confidence}));
+  if(!out.length)String(data.text||"").split("\n").forEach(t=>out.push({t,c:Math.max(60,data.confidence||70)}));return out}
+const UI_LINE=/(wikipedia\.org|https?:|www\.|\.(com|uz|org|ru|net)\b|^\d{1,2}[:.]\d{2}\b|\b\d{1,3}\s?%\s*$|vikipediya|mundarija|tahrirlash|manbani tahrirlash|ulashish|izohlar|havolalar|qidirish|bosh sahifa)/i;
+function goodLine(t,c){t=t.replace(/\[\d+\]|\[[a-z]\]/g,"").replace(/\s+/g," ").trim();
+  if(t.length<4||c<55||UI_LINE.test(t))return"";
+  const L=(t.match(/\p{L}/gu)||[]).length,lat=(t.match(/[A-Za-zʻʼ‘’'ÀÁÂÄÇÈÉÊÍÓÔÖÚÜĞŞÑ]/g)||[]).length,cyr=(t.match(/[\u0400-\u04FF]/g)||[]).length;
+  if(L/t.length<.5||cyr>L*.1||lat<L*.85)return""; // belgilar ko'p yoki kirill/boshqa yozuv
+  const ws=t.split(" ").filter(w=>/^[\p{L}\dʻʼ‘’'«»"“”(),.;:!?–—%°²-]+$/u.test(w)),real=ws.filter(w=>(w.match(/\p{L}/gu)||[]).length>=3);
+  if(real.length<2||ws.length/t.split(" ").length<.75)return"";
+  if(/[|{}\[\]<>=_~^#@*\\]/.test(t)&&c<80)return"";
+  return t.replace(/[|{}<>=_~^#@*\\]+/g," ").replace(/\s+/g," ").trim()}
+function cleanOcr(data){const lines=ocrLines(data),paras=[];let cur="",lastP=null;
+  for(const l of lines){const t=goodLine(l.t||"",l.c==null?70:l.c);if(!t){continue}
+    const key=norm(t).replace(/[^\p{L}\d]/gu,"").slice(0,60);if(key.length>8&&OCR_SEEN.has(key))continue;OCR_SEEN.add(key);
+    const same=l.p&&l.p===lastP,join=cur&&(same?!(/[.!?:»”"]$/.test(cur)&&/^\p{Lu}/u.test(t)&&false):/^[\p{Ll}\d(,;]/u.test(t)||(!/[.!?:»”"]$/.test(cur)&&cur.length>60));
+    if(join)cur=cur.replace(/-$/,"")+(cur.endsWith("-")?"":" ")+t;else{if(cur)paras.push(cur);cur=t}lastP=l.p}
+  if(cur)paras.push(cur);
+  return paras.filter(p=>p.length>=12).join("\n")}
 $("#srcPdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{await readPdf(f)}catch(err){srcStatus("PDF faylni o'qib bo'lmadi: "+err.message,true)}};
-$("#srcImg").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;let ok=0;
+$("#srcImg").onchange=async e=>{const fs=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name,undefined,{numeric:true}));e.target.value="";if(!fs.length)return;let ok=0;
   try{for(const[i,f]of fs.entries()){srcStatus(`${i+1}-rasm o'qilmoqda (jami ${fs.length} ta)…`);const t=await ocrImage(f,`${i+1}/${fs.length}-rasm`);if(t.trim()){appendText(t);ok++}
       try{const im=await loadImg(f);addSrcImgs(findPhotos(im),t);URL.revokeObjectURL(im.src)}catch(_){}}
     if(!deck.srcName)deck.srcName="Foydalanuvchi skrinshotlari";
@@ -1531,7 +1559,7 @@ $("#srcImg").onchange=async e=>{const fs=[...e.target.files];e.target.value="";i
   catch(err){srcStatus("Rasmni o'qib bo'lmadi: "+err.message,true)}};
 document.querySelectorAll(".src-t").forEach(b=>b.onclick=()=>{document.querySelectorAll(".src-t").forEach(x=>x.classList.toggle("on",x===b));
   document.querySelectorAll(".src-p").forEach(p=>p.hidden=p.dataset.p!==b.dataset.src);srcMode(b.dataset.src);if(b.dataset.src==="txt")$("#manual").focus()});
-$("#srcClear").onclick=()=>{$("#manual").value="";deck.srcName="";SRC_IMGS=[];srcStatus("")};
+$("#srcClear").onclick=()=>{OCR_SEEN.clear();$("#manual").value="";deck.srcName="";SRC_IMGS=[];srcStatus("")};
 $("#manual").addEventListener("paste",()=>{if(!deck.srcName)deck.srcName=""});
 
 /* ---------- slaydlarni chizish ---------- */
