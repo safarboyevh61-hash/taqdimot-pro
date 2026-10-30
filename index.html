@@ -1057,6 +1057,11 @@ async function detectEntity(lang,topic){
       aliases:[...new Set(r.map(w=>stem(w)).concat(keyStems(res.title).slice(0,1)))].filter(a=>a.length>=3)}}return null};
   for(const r of runs){const e=await tryRun(r,false);if(e)return e}
   if(words.length>1&&/^\p{Lu}/u.test(words[0])){const e=await tryRun([words[0]],true);if(e)return e} // qisqartma kabi yo'naltirilgan so'z
+  // "Yaponiya ta'lim tizimi", "Janubiy Koreya iqtisodiyoti": jihat so'zidan oldingi so'zlar — asosiy nom
+  const isAsp=w=>{const s=stem(w);return ASP.some(([re])=>re.test(s))};
+  const ai=words.findIndex(isAsp);
+  if(ai>0&&ai<=3){const r=words.slice(0,ai);
+    if(!r.some(w=>isAsp(w)||GENERIC.test(stem(w))||CLS.test(stem(w))||STOP.has(stem(w)))){const e=await tryRun(r,false);if(e)return e}}
   return null}
 // Google tarjimon (bepul) — inglizcha ma'lumotni o'zbekchaga o'girish
 async function getJSON(url){for(const via of [u=>u,u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),u=>"https://corsproxy.io/?url="+encodeURIComponent(u)]){
