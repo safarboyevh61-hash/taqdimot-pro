@@ -625,7 +625,12 @@ let custom={cover:"",content:"",text:"auto",auto:"#12306b"};
 let showIdx=0;const BG={};
 
 function setStatus(t,err){const s=$("#status");s.textContent=t;s.className="status"+(err?" err":"");}
-function save(){BLOBS={};try{localStorage.setItem("slaydchi2",JSON.stringify(deck))}catch(e){}}
+function save(){BLOBS={};clearTimeout(window._svT);window._svT=setTimeout(saveNow,300)}
+// yozayotganda har harfda emas — to'xtagandan keyin saqlanadi (telefon qotmasin)
+function saveLater(){BLOBS={};clearTimeout(window._svT);window._svT=setTimeout(saveNow,1500)}
+function saveNow(){try{const d=Object.assign({},deck,{pool:(deck.pool||[]).filter(u=>!/^data:/.test(u))});localStorage.setItem("slaydchi2",JSON.stringify(d))}catch(e){}}
+window.addEventListener("pagehide",()=>{clearTimeout(window._svT);saveNow()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){clearTimeout(window._svT);saveNow()}});
 function saveCustom(){try{localStorage.setItem("slaydchi_custom",JSON.stringify(custom))}catch(e){setStatus("Rasm juda katta, keyingi safar uchun saqlanmadi.",true)}}
 function load(){try{const d=JSON.parse(localStorage.getItem("slaydchi2")||"null");if(d&&d.slides)deck=Object.assign(deck,d)}catch(e){}
   try{const c=JSON.parse(localStorage.getItem("slaydchi_custom")||"null");if(c)custom=Object.assign(custom,c)}catch(e){}}
@@ -734,12 +739,16 @@ async function api(lang,params){
 // Gaplarga ajratish: nuqtadan keyin katta harf kelsagina yangi gap boshlanadi ("qad." kabi qisqartmalar buzilmaydi)
 function sentences(t){t=t.replace(/\s+/g," ").trim();
   return t.split(/(?<=[.!?…])\s+(?=[A-ZА-ЯЁЎҚҒҲ0-9«"“(])/).map(x=>x.trim()).filter(x=>x.length>30&&x.length<600&&/[.!?…»")]$/.test(x))}
-function shorten(s,n=240){if(s.length<=n)return s;const c=s.slice(0,n);return c.slice(0,c.lastIndexOf(" "))+"…"}
+function shorten(s,n=240){return s} // gaplar endi kesilmaydi ("…" bilan chala qolmasin)
+// juda uzun gap: vergul/nuqtali vergul joyidan ikki to'liq qismga bo'linadi
+function splitLong(s,max){if(s.length<=max)return[s];const mid=Math.floor(s.length/2);let best=-1;
+  for(const re of [/;\s/g,/,\s(?:va|ammo|lekin|biroq|chunki|shuningdek)\s/g,/,\s/g]){let m;re.lastIndex=0;while((m=re.exec(s))){if(m.index>max*.35&&m.index<s.length-60&&(best<0||Math.abs(m.index-mid)<Math.abs(best-mid)))best=m.index}if(best>0)break}
+  if(best<0)return[s];const a=s.slice(0,best).trim()+".",b=s.slice(best+1).trim();return[a,cap(b.replace(/^(va|ammo|lekin|biroq|chunki|shuningdek)\s+/,""))].flatMap(x=>splitLong(x,max))}
 function parseSections(text,title,src){const out=[];let parent="";text.split(/\n(?==+\s)/).forEach((p,i)=>{let head=title,body=p;const m=p.match(/^(=+)\s*(.+?)\s*\1\s*\n?/);
   if(m){head=m[2];body=p.slice(m[0].length);if(m[1].length<=2)parent=head;else if(parent)head=parent+": "+head}
   if(SKIP.test(m?m[2]:""))return;const s=sentences(body);if(s.length)out.push({head:(i===0&&!m)?title:head,sents:s,src})});return out}
 let CH={n:4,len:520};
-function chunk(sec){const out=[];let cur=[],len=0;sec.sents.forEach(s=>{s=shorten(s);if(cur.length&&(cur.length>=CH.n||len+s.length>CH.len)){out.push(cur);cur=[];len=0}cur.push(s);len+=s.length});if(cur.length)out.push(cur);
+function chunk(sec){const out=[];let cur=[],len=0;sec.sents.flatMap(s=>splitLong(s,380)).forEach(s=>{if(cur.length&&(cur.length>=CH.n||len+s.length>CH.len)){out.push(cur);cur=[];len=0}cur.push(s);len+=s.length});if(cur.length)out.push(cur);
   // oxirgi slaydda bitta gap qolib ketmasin
   const L=out.length;if(L>1&&out[L-1].length===1&&out[L-2].length>=3)out[L-1].unshift(out[L-2].pop());return out}
 function buildSlides(title,sections,pool,n,sources,refs){refs=refs||[];
@@ -786,16 +795,59 @@ function groupSecs(secs){const groups=[],by={};
 const lcFirst=t=>/^\p{Lu}\p{Ll}/u.test(t)?t.charAt(0).toLowerCase()+t.slice(1):t;
 const listJoin=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" va "+a[a.length-1];
 // murakkab reja uchun keng band nomi: "Tarixi: mustamlaka davri va zamonaviy davr"
-function longTitle(g){const kids=g.kids.filter(k=>k.sents.length).slice(0,3).map(k=>lcFirst(k.title));
-  if(INTRO.test(norm(g.title)))return"Umumiy ma'lumot: mavzuga kirish va asosiy tushunchalar";
-  return kids.length?`${g.title}: ${listJoin(kids)}`:/ va /.test(g.title)?`${g.title}: asosiy xususiyatlari`:`${g.title} va uning asosiy xususiyatlari`}
+// murakkab reja bandlari: har biri mavzuga mos, har xil (bir xil "asosiy xususiyatlari" takrorlanmaydi)
+const RICH=[
+ [/^ta'lim tizimining tarixi|^ta'lim islohot/,"Ta'lim tizimining shakllanish tarixi va islohotlar"],
+ [/^maktabgacha ta'lim|^bolalar bog'/,"Maktabgacha ta'lim: bolalar bog'chalari va maktabga tayyorlov"],
+ [/^boshlang'ich (ta'lim|maktab)/,"Boshlang'ich ta'lim: maktabga qabul va o'qitiladigan fanlar"],
+ [/^o'rta (ta'lim|maktab)|^yuqori maktab/,"O'rta ta'lim: o'rta va yuqori maktablar tizimi"],
+ [/^oliy ta'lim|^universitet/,"Oliy ta'lim: universitetlar, kollejlar va o'qishga kirish tartibi"],
+ [/^o'quv jarayoni|^fanlar va o'quv/,"O'quv jarayoni: o'quv yili, darslar va ta'tillar"],
+ [/^o'qituvchi/,"O'qituvchilar: tayyorlash va malaka oshirish"],
+ [/^ta'limni boshqarish|^davlat va xususiy/,"Ta'limni boshqarish va moliyalashtirish tizimi"],
+ [/^imtihon/,"Imtihonlar va bilimlarni baholash tizimi"],
+ [/^geografik o'rni/,"Geografik o'rni, chegaralari va maydoni"],
+ [/^chegaralari/,"Chegaralari va qo'shni davlatlar bilan aloqalari"],
+ [/^tabiiy sharoit/,"Tabiiy sharoiti: relyef, iqlim va ichki suvlar"],
+ [/^iqlim/,"Iqlimi: harorat, yog'inlar va fasllar"],
+ [/^relyef|^tog'lari/,"Relyefi: tog'lar, tekisliklar va pasttekisliklar"],
+ [/^ichki suv|^daryo/,"Ichki suvlari: daryolar, ko'llar va ularning ahamiyati"],
+ [/^tabiat zona|^o'simlik|^hayvonot/,"Tabiat zonalari, o'simlik va hayvonot dunyosi"],
+ [/^foydali qazilma|^tabiiy resurs/,"Foydali qazilmalari va tabiiy resurslardan foydalanish"],
+ [/^aholi/,"Aholisi: soni, tarkibi va joylashuvi"],
+ [/^iqtisod/,"Iqtisodiyoti: sanoat, qishloq xo'jaligi va savdo"],
+ [/^sanoat/,"Sanoat tarmoqlari va ularning joylashuvi"],
+ [/^qishloq xo'jalig/,"Qishloq xo'jaligi: dehqonchilik va chorvachilik"],
+ [/^tarix/,"Tarixi: qadimgi davrdan hozirgi kungacha"],
+ [/^madaniyat/,"Madaniyati, san'ati va milliy an'analari"],
+ [/^transport/,"Transport tizimi va aloqa yo'llari"],
+ [/^davlat tuzumi|^siyosiy tuzum|^boshqaruv/,"Davlat tuzumi va boshqaruv tizimi"],
+ [/^din/,"Dini va diniy e'tiqodlar"],
+ [/^turizm/,"Turizmi va diqqatga sazovor joylari"],
+ [/^sport/,"Sporti va xalqaro sport yutuqlari"],
+ [/^ekolog/,"Ekologik muammolar va ularning yechimlari"],
+ [/^ahamiyat/,"Amaliy ahamiyati va qo'llanilishi"],
+ [/^turlari|^tasnif/,"Turlari va ularning tasnifi"],
+ [/^tuzilish/,"Tuzilishi va tarkibiy qismlari"]];
+const RICH_TPL=[t=>`${t}: mohiyati va ahamiyati`,t=>`${t}: rivojlanish bosqichlari`,t=>`${t}: tuzilishi va faoliyati`,t=>`${t}: hozirgi holati va muammolari`,
+  t=>`${t}: o'ziga xos jihatlari`,t=>`${t}: tamoyillari va qoidalari`,t=>`${t}: zamonaviy yo'nalishlari`,t=>`${t}: tarixi va bugungi kuni`];
+function longTitle(g,idx,used){used=used||new Set();idx=idx||0;const kids=g.kids.filter(k=>k.sents.length).slice(0,3).map(k=>lcFirst(k.title));
+  const ok=t=>{if(used.has(t))return null;used.add(t);return t};
+  if(INTRO.test(norm(g.title)))return ok("Umumiy ma'lumot: mavzuga kirish va asosiy tushunchalar")||g.title;
+  if(kids.length){const t=ok(`${g.title}: ${listJoin(kids)}`);if(t)return t}
+  const n=norm(g.title),parts=n.split(" va "),composite=parts.length>1&&RICH.some(([re])=>re.test(parts[parts.length-1]));
+  const r=!composite&&RICH.find(([re])=>re.test(n));if(r){const t=ok(r[1]);if(t)return t}
+  if(g.title.length>=34||/:/.test(g.title))return ok(g.title)||g.title;
+  for(let j=0;j<RICH_TPL.length;j++){const t=ok(RICH_TPL[(idx+j)%RICH_TPL.length](g.title));if(t)return t}
+  return g.title}
 function planFromSecs(secs,mode,count,slides){let groups=groupSecs(secs);
   // bandlar kam bo'lsa — ichki bo'limlar alohida band bo'ladi
   if(groups.length<count){const g2=[];groups.forEach(g=>{if(g.own.length)g2.push({title:g.title,own:g.own,kids:[]});g.kids.forEach(k=>{if(k.sents.length)g2.push({title:k.title,own:k.sents,kids:[]})})});if(g2.length>groups.length)groups=g2}
   const size=g=>g.own.length+g.kids.reduce((a,k)=>a+k.sents.length,0);
   if(mode==="complex"){let gs=groups;
     if(gs.length<count){gs=[];groups.forEach(g=>{gs.push(g);if(g.kids.length>1&&gs.length<count)g.kids.slice(1).forEach(k=>{if(k.sents.length>=3){gs.push({title:k.title,own:k.sents,kids:[]});k.sents=[]}})})}
-    return pickKeepOrder(gs.filter(g=>size(g)),count,size).map(g=>({title:longTitle(g),short:g.title,sents:g.own.concat(...g.kids.map(k=>k.sents)),subs:[]}))}
+    const usedT=new Set();
+    return pickKeepOrder(gs.filter(g=>size(g)),count,size).map((g,i)=>({title:longTitle(g,i,usedT),short:g.title,sents:g.own.concat(...g.kids.map(k=>k.sents)),subs:[]}))}
   // har band faqat o'z nomiga mos ma'lumotni oladi: ichki bo'limlar boshqa band nomi ostiga aralashtirilmaydi
   let pool=[];groups.forEach(g=>{const kids=g.kids.filter(k=>k.sents.length);
     if(g.art||!kids.length){const all=g.own.concat(...kids.map(k=>k.sents));if(all.length)pool.push({title:g.title,sents:all})}
@@ -899,7 +951,7 @@ function buildPlanSlides(title,sections,plan,mode,pool,n,sources,refs){refs=refs
   for(let r=0;r<refs.length;r+=RPS)slides.push({type:"content",kind:"refs",title:"Foydalanilgan adabiyotlar",bullets:refs.slice(r,r+RPS),start:r,imgs:[]});
   return{slides,short:false,units:units.length,empty:slides.filter(x=>x.empty).length}}
 
-function conclusion(sections){const out=[];let len=0;const add=t=>{t=shorten(t,260);if(len+t.length>950||out.includes(t))return false;out.push(t);len+=t.length;return true};
+function conclusion(sections){const out=[];let len=0;const add=t=>{if(t.length>300||/…$|\.\.\.$/.test(t))return true;if(len+t.length>950||out.includes(t))return false;out.push(t);len+=t.length;return true};
   if(sections[0])sections[0].sents.slice(0,3).forEach(add);
   // har bir bo'limning birinchi gapi — umumlashtiruvchi fikr
   for(const sc of sections.slice(1)){if(out.length>=7)break;const t=sc.sents.find(x=>x.length<260);if(t)add(t)}
@@ -1280,7 +1332,7 @@ async function generate(force){
       const scored=secs.map((sc,i)=>({sc,i,v:scoreOf(sc)}));const rel=scored.filter(o=>o.v>=1),relS=rel.reduce((a,o)=>a+o.sc.sents.length,0);
       if(relS>=Math.min(wantS(),40)||rel.length>=3)secs=rel.map(o=>o.sc)}
     setStatus("Rasmlar yig'ilmoqda…");
-    const pool=await collectImages(lang,main,extra,n,imgSeeds);
+    let pool=await collectImages(lang,main,extra,n,imgSeeds);
     if(deck.uni&&!deck.uniUp&&!deck.uniImg){setStatus("Universitet rasmi qidirilmoqda…");await lookupUni()}
     CH=deck.design==="dars"?{n:4,len:560}:{n:5,len:640};
     let plan;
@@ -1518,7 +1570,7 @@ function placeSrcImgs(slides){if(!SRC_IMGS.length)return 0;
   const cnt=new Map();let placed=0;
   SRC_IMGS.forEach((im,idx)=>{const ik=ks(im.ctx);let best=-1,bv=-1;
     content.forEach((o,j)=>{let v=0;ik.forEach(k=>{if(sk[j].has(k))v++});v=v/(1+(cnt.get(j)||0)*3);if(v>bv){bv=v;best=j}});
-    if(best<0||bv<=0)best=Math.min(content.length-1,Math.floor(idx*content.length/SRC_IMGS.length));
+    if(best<0||bv<2)return; // mos slayd topilmasa — tasodifiy joyga qo'yilmaydi
     if((cnt.get(best)||0)>=3){const free=content.findIndex((_,j)=>!(cnt.get(j)));if(free<0)return;best=free}
     const s=content[best].s,list=[...imgs(s)];list.splice(cnt.get(best)||0,0,im.url);s.imgs=list.slice(0,4);s.img="";
     if(!cnt.get(best)&&s.side)s.side=im.url;cnt.set(best,(cnt.get(best)||0)+1);placed++});
@@ -1927,7 +1979,7 @@ function render(){
 }
 document.addEventListener("input",e=>{const el=e.target.closest("[data-i]");if(!el||!el.isContentEditable)return;const s=deck.slides[+el.dataset.i];
   if(el.dataset.cap!==undefined){s.caps=s.caps||[];s.caps[+el.dataset.cap]=el.textContent.trim()}
-  else if(el.dataset.k!==undefined)s.bullets[+el.dataset.k]=el.textContent.trim();else if(el.dataset.f==="title")s.title=el.textContent.trim();save()});
+  else if(el.dataset.k!==undefined)s.bullets[+el.dataset.k]=el.textContent.trim();else if(el.dataset.f==="title")s.title=el.textContent.trim();saveLater()});
 document.addEventListener("focusout",e=>{if(e.target.closest&&e.target.closest("#deck [contenteditable]")){const sl=e.target.closest(".slide");if(sl)fit(sl)}});
 const LAYS=["A","B","C","E","D"];
 document.addEventListener("click",e=>{const t=e.target.dataset;if(!t)return;
