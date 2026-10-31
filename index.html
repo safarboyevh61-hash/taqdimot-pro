@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <style>
 /* Layout: bitta ustun — mavzu paneli, dizayn galereyasi, slaydlar lentasi; ko'rsatish rejimi to'liq ekran */
 :root{
@@ -2310,6 +2311,7 @@ function showFallback(blob,name){
     else{b.disabled=false;b.textContent="Havola orqali yuklab olish";dlStatus("Havola yaratib bo'lmadi. Internetni tekshiring.",true)}}}
 async function saveBlob(blob,name){
   $("#dlLink").hidden=true;
+  if(window.IN_TG&&IN_TG())return await tgSave(blob,name);
   if(await nativeSave(blob,name))return"native";
   blobDownload(blob,name);
   if(IN_APP){showFallback(blob,name);return"app"}
@@ -2333,6 +2335,7 @@ async function runExport(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const blob=await buildBlob(kind);
     const mode=await saveBlob(blob,fname(kind)),mb=(blob.size/1048576).toFixed(1);
+    if(mode==="tg")return;
     if(mode==="native"){dlStatus(`«${fname(kind)}» telefonga saqlandi (${mb} MB). «Yuklanmalar» (Download) yoki «Fayllar» ilovasini oching.`);return}
     dlStatus(mode==="app"?`«${fname(kind)}» yuklab olinmoqda (${mb} MB). Tepada bildirishnoma chiqadi, fayl «Yuklanmalar» (Download) papkasiga tushadi.`
       :`«${fname(kind)}» saqlandi (${mb} MB). Telefonning «Yuklanmalar» (Download) papkasini tekshiring.`);
@@ -2661,6 +2664,78 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   document.getElementById("updGo").onclick=()=>{try{SH_OPEN=true;buildGallery()}catch(_){}
     const g=document.getElementById("gallery"),s=[...g.querySelectorAll(".gsec")].find(x=>/Shablon/.test(x.textContent));
     (s||g).scrollIntoView({behavior:"smooth",block:"start"})}})();
+</script>
+
+<script>
+/* ===== Telegram Mini App ichida ishlash: tashqi havolalar va yuklab olish ===== */
+(function(){
+  try{ if(/tgWebApp(Data|Platform|Version)=/.test(location.hash)) sessionStorage.setItem("tp_in_tg","1"); }catch(_){}
+  window.IN_TG=function(){
+    try{ if(sessionStorage.getItem("tp_in_tg")==="1") return true; }catch(_){}
+    const W=window.Telegram&&Telegram.WebApp;
+    return !!(window.TelegramWebviewProxy||(W&&W.platform&&W.platform!=="unknown"));
+  };
+  function post(ev,data){
+    try{ if(window.TelegramWebviewProxy){ TelegramWebviewProxy.postEvent(ev,JSON.stringify(data)); return true; } }catch(_){}
+    try{ if(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.performAction){ webkit.messageHandlers.performAction.postMessage(JSON.stringify({eventType:ev,eventData:data})); return true; } }catch(_){}
+    try{ if(window.parent!==window){ window.parent.postMessage(JSON.stringify({eventType:ev,eventData:data}),"*"); return true; } }catch(_){}
+    return false;
+  }
+  // havolani Telegram'dan tashqarida (brauzerda) yoki Telegram'ning o'zida ochish
+  window.tgOpen=function(url){
+    const W=window.Telegram&&Telegram.WebApp;
+    if(/^https?:\/\/t\.me\//i.test(url)){
+      try{ if(W&&W.openTelegramLink){ W.openTelegramLink(url); return; } }catch(_){}
+      if(post("web_app_open_tg_link",{path_full:url.replace(/^https?:\/\/t\.me/i,"")})) return;
+    }else{
+      try{ if(W&&W.openLink){ W.openLink(url); return; } }catch(_){}
+      if(post("web_app_open_link",{url:url})) return;
+    }
+    window.open(url,"_blank");
+  };
+  // intent://, tg:// kabi havolalarni oddiy https havolaga aylantirish
+  function realUrl(h){
+    if(/^tg:\/\/resolve/i.test(h)){ const q=new URLSearchParams(h.split("?")[1]||""); return "https://t.me/"+(q.get("domain")||"")+(q.get("text")?"?text="+encodeURIComponent(q.get("text")):""); }
+    if(/^intent:/i.test(h)){
+      const fb=(h.match(/S\.browser_fallback_url=([^;]+)/)||[])[1]; if(fb) return decodeURIComponent(fb);
+      const m=h.match(/^intent:\/\/([^#]*)#Intent;.*scheme=(https?)/i); if(m) return m[2]+"://"+m[1];
+      return "";
+    }
+    return h;
+  }
+  document.addEventListener("click",function(e){
+    if(!window.IN_TG()) return;
+    const a=e.target.closest&&e.target.closest("a[href]"); if(!a) return;
+    const raw=a.getAttribute("href")||""; if(raw.charAt(0)==="#"||/^javascript:/i.test(raw)) return;
+    let url="";
+    if(a.id==="uniGoogle"){
+      if(!(((document.getElementById("uni")||{}).value||"").trim()||(window.deck&&deck.uni))) return; // xabarni asl kod ko'rsatadi
+      url=typeof uniGoogleHref==="function"?uniGoogleHref():a.href;
+    }else if(a.classList.contains("tg-link")){
+      url="https://t.me/Safarboyev_Husanjon";
+    }else{
+      url=realUrl(raw);
+      if(/^https?:/i.test(url)){ try{ if(new URL(url,location.href).origin===location.origin&&a.target!=="_blank") return; }catch(_){} }
+    }
+    e.preventDefault(); e.stopImmediatePropagation();
+    if(url) window.tgOpen(new URL(url,location.href).href);
+  },true);
+  // Telegram ichida butun ekranga yoyish
+  window.addEventListener("load",function(){ try{ if(window.IN_TG()&&window.Telegram&&Telegram.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); } }catch(_){} });
+})();
+// Telegram ichida PPTX/PDF yuklab olish: fayl vaqtincha internetga joylanadi va Telegram o'zi yuklab beradi
+async function tgSave(blob,name){
+  dlStatus("Fayl tayyorlanmoqda… (Telegram ichida yuklab olish uchun)");
+  const link=await uploadTemp(blob,name);
+  if(!link){ dlStatus("Faylni tayyorlab bo'lmadi. Internetni tekshiring yoki saytni Chrome'da oching.",true); return "tg"; }
+  const W=window.Telegram&&Telegram.WebApp;
+  let ok=false;
+  try{ if(W&&W.downloadFile&&W.isVersionAtLeast&&W.isVersionAtLeast("8.0")){ W.downloadFile({url:link,file_name:name}); ok=true; } }catch(_){}
+  showLink(link,name);
+  dlStatus(ok?`Telegram oynasida «Yuklab olish»ni bosing — «${name}» telefoningizga saqlanadi.`
+             :`Fayl tayyor. «Faylni yuklab olish» tugmasini bosing — u brauzerda ochilib, yuklanadi.`);
+  return "tg";
+}
 </script>
 </body>
 </html>
