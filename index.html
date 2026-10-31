@@ -363,6 +363,8 @@ header .chip{display:inline-block;margin-top:12px;background:var(--y1);color:#1a
 .panel h2 span,.ttl span{color:var(--r1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .panel h2,:root:not([data-theme="light"]) .ttl{color:#cfe0ff}}
 label,.lbl{color:var(--b2);font-weight:800;letter-spacing:.04em}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) label,:root:not([data-theme="light"]) .lbl,:root:not([data-theme="light"]) .gsec{color:#8fb8ff!important}}
+:root[data-theme="dark"] label,:root[data-theme="dark"] .lbl,:root[data-theme="dark"] .gsec{color:#8fb8ff!important}
 input[type=text],input[type=password],select,textarea{border:2px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600;transition:border-color .15s,box-shadow .15s}
 input[type=text]:focus,input[type=password]:focus,select:focus,textarea:focus{border-color:var(--b2);box-shadow:0 0 0 4px rgba(42,90,214,.15);outline:none}
 button{border-radius:12px;font-weight:700}
@@ -2531,7 +2533,7 @@ $("#uniPasteBtn").onclick=async()=>{const st=$("#uniStatus");
     for(const it of items){const t=it.types.find(x=>/^image\//.test(x));if(t){await useImageBlob(await it.getType(t));return}}
     for(const it of items)if(it.types.includes("text/plain")){const tx=await (await it.getType("text/plain")).text();if(cleanImgUrl(tx)){$("#uniUrl").value=tx;await setUniFromUrl();return}}
     st.textContent="Bufer xotirada rasm yo'q. Avval Google'da rasmni bosib turing → «Rasmni nusxalash».";st.className="status err"}
-  catch(_){st.textContent="Telefon bu tugmaga ruxsat bermadi. Yuqoridagi punktirli maydonni bosib turing → «Qo'yish» (Paste).";st.className="status err";$("#uniPaste").focus()}};
+  catch(_){st.innerHTML="Telefon nusxalangan rasmni o'qishga ruxsat bermadi. Yuqoridagi punktirli maydonni <b>bosib turing → «Qo'yish»</b>. Bo'lmasa, rasmni telefonga yuklab olib, <b>«Rasm yuklash»</b> tugmasi orqali tanlang.";st.className="status err";$("#uniPaste").focus()}};
 
 /* ---------- slayddagi rasmni almashtirish: ko'rinib turgan asosiy rasm keyingisiga o'zgaradi ---------- */
 function swapImage(i){const s=deck.slides[i],pool=deck.pool||[];if(pool.length<2)return;
@@ -2848,6 +2850,19 @@ window.addEventListener("load",()=>{setTimeout(()=>{
     blk.append(w);w.querySelector("#bsBack").onclick=()=>{try{Telegram.WebApp.close()}catch(_){location.href="https://t.me/Pro_slidesgo_bot"}}}
   const h2=box.querySelector("h2");(h2?h2.nextSibling:box.firstChild).before(blk);
 },400)});
+</script>
+
+<script>
+// Telegram ichida bufer xotiradagi rasmni o'qib bo'lmaydi — rasm galereyadan tanlanadi
+window.addEventListener("load",()=>{setTimeout(()=>{
+  const btn=document.getElementById("uniPasteBtn"),up=document.getElementById("uniUp");if(!btn||!up||!(window.IN_TG&&IN_TG()))return;
+  btn.textContent="🖼 Galereyadan rasm tanlash";
+  btn.onclick=()=>{const st=document.getElementById("uniStatus");if(st){st.textContent="";st.className="status"}up.click()};
+  const sm=btn.nextElementSibling;
+  if(sm&&sm.tagName==="SMALL")sm.innerHTML="Google'da bino rasmini <b>bosib turing</b> → <b>«Скачать изображение»</b> (Rasmni yuklab olish) → Telegram'ga qaytib <b>«🖼 Galereyadan rasm tanlash»</b>ni bosing va o'sha rasmni tanlang.";
+  const box=document.getElementById("uniPaste");if(box)box.style.display="none";
+  const lb=box&&box.previousElementSibling;if(lb&&lb.classList.contains("lbl"))lb.textContent="Google'dan olingan rasmni qo'yish";
+},300)});
 </script>
 </body>
 </html>
