@@ -2387,6 +2387,9 @@ async function runTelegram(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const had=!!BLOBS[kind];await buildBlob(kind);
     if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(BLOBS[kind],fname(kind)))return}
+    if(window.IN_TG&&IN_TG()){await tgSave(BLOBS[kind],fname(kind));
+      if(!(typeof tgCanBot==="function"&&tgCanBot()))dlStatus("Botga saqlash hali yoqilmagan, shuning uchun fayl yuklab olinmoqda. (Dasturchi uchun: bot kodini yangilab, botga /start yozing va yangi «⚡ Slayd yaratish» tugmasidan oching.)",true);
+      return}
     if(had||!canShareKind(kind)){await shareNow(kind);return}
     // fayl tayyorlanishi uzoq davom etgani uchun yuborish yangi bosishni talab qiladi
     const box=$("#dlLink");box.hidden=false;const mb=(BLOBS[kind].size/1048576).toFixed(1);
@@ -2745,12 +2748,12 @@ async function tgSave(blob,name){
 (function(){
   try{
     const q=new URLSearchParams(location.search),api=q.get("api")||"";
-    if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(api)) sessionStorage.setItem("tp_api",api);
+    if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(api)){sessionStorage.setItem("tp_api",api);try{localStorage.setItem("tp_api",api)}catch(_){}}
     const h=new URLSearchParams(location.hash.slice(1)).get("tgWebAppData");
     if(h) sessionStorage.setItem("tp_init",h);
   }catch(_){}
 })();
-function tgApi(){try{return sessionStorage.getItem("tp_api")||""}catch(_){return ""}}
+function tgApi(){let v="";try{v=sessionStorage.getItem("tp_api")||""}catch(_){}if(!v){try{v=localStorage.getItem("tp_api")||""}catch(_){}}return v}
 function tgInit(){const W=window.Telegram&&Telegram.WebApp;if(W&&W.initData)return W.initData;try{return sessionStorage.getItem("tp_init")||""}catch(_){return ""}}
 function tgCanBot(){return !!(window.IN_TG&&IN_TG()&&tgApi()&&tgInit())}
 function jsonp(url){return new Promise(res=>{const cb="tpcb_"+Date.now()+"_"+Math.floor(Math.random()*1e6),s=document.createElement("script");let done=false;
@@ -2787,11 +2790,28 @@ function tgSent(name){
   dlStatus("✅ Fayl bot chatiga yuborildi.")}
 </script>
 
+<style>
+.botsave{display:flex;flex-direction:column;gap:8px;border-radius:16px;padding:14px;background:linear-gradient(135deg,#2a3fd6,#7b3fe4);color:#fff;box-shadow:0 10px 22px rgba(90,60,220,.35)}
+.botsave b{font:900 17px/1.2 "Montserrat",sans-serif}
+.botsave small{opacity:.92;font-size:13px;line-height:1.35}
+.botsave .row button{background:#fff!important;color:#3a2bb8!important;border:0!important;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.15)}
+</style>
 <script>
-// bot ichida ochilganda tugma yozuvlari: fayl bot chatiga boradi
-window.addEventListener("load",()=>{setTimeout(()=>{if(!(typeof tgCanBot==="function"&&tgCanBot()))return;
-  const l=[...document.querySelectorAll("#dlBox .lbl")].find(x=>/Telegram/.test(x.textContent));if(l)l.textContent="Bot chatiga fayl bo'lib yuborish";
-  const a=document.getElementById("tgPptx"),b=document.getElementById("tgPdf");if(a)a.textContent="📤 PPTX → bot chatiga";if(b)b.textContent="📤 PDF → bot chatiga"},600)});
+// bot ichida: «🤖 Botning o'ziga saqlash» bloki — fayl bot chatiga keladi
+window.addEventListener("load",()=>{setTimeout(()=>{
+  const box=document.getElementById("dlBox"),a=document.getElementById("tgPptx"),b=document.getElementById("tgPdf");if(!box||!a||!b)return;
+  if(!(window.IN_TG&&IN_TG())){ // oddiy saytda: botga taklif
+    const blk=document.createElement("div");blk.className="botsave";
+    blk.innerHTML='<b>🤖 Botning o\'ziga saqlash</b><small>Taqdimot Pro\'ni Telegram botimiz orqali ochsangiz, tayyor fayl to\'g\'ridan-to\'g\'ri bot chatiga keladi.</small>'+
+      '<div class="row" style="grid-template-columns:1fr"><a class="dl-b" href="https://t.me/Pro_slidesgo_bot" target="_blank" rel="noopener" style="background:#fff;color:#3a2bb8;border:0;font-weight:900;text-align:center">🤖 @Pro_slidesgo_bot — botni ochish</a></div>';
+    const h2=box.querySelector("h2");(h2?h2.nextSibling:box.firstChild).before(blk);return}
+  const l=[...box.querySelectorAll(".lbl")].find(x=>/Telegram/.test(x.textContent)),row=a.closest(".row");
+  const blk=document.createElement("div");blk.className="botsave";
+  blk.innerHTML='<b>🤖 Botning o\'ziga saqlash</b><small>Tayyor taqdimot fayl bo\'lib shu bot chatiga keladi — keyin uni ochishingiz yoki do\'stlaringizga yuborishingiz mumkin.</small>';
+  a.textContent="🤖 PPTX — botga saqlash";b.textContent="🤖 PDF — botga saqlash";
+  blk.append(row);if(l)l.remove();
+  const h2=box.querySelector("h2");(h2?h2.nextSibling:box.firstChild).before(blk);
+},400)});
 </script>
 </body>
 </html>
