@@ -2417,7 +2417,7 @@ async function runTelegram(kind){
   try{const had=!!BLOBS[kind];await buildBlob(kind);
     if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(BLOBS[kind],fname(kind)))return}
     if(window.IN_TG&&IN_TG()){await tgSave(BLOBS[kind],fname(kind));
-      if(!(typeof tgCanBot==="function"&&tgCanBot()))dlStatus("Botga saqlash hali yoqilmagan, shuning uchun fayl yuklab olinmoqda. (Dasturchi uchun: bot kodini yangilab, botga /start yozing va yangi «⚡ Slayd yaratish» tugmasidan oching.)",true);
+      if(!(typeof tgCanBot==="function"&&tgCanBot()))dlStatus("⚠️ Fayl bot chatiga yuborilmadi: "+tgWhy()+" Botga /start yozing va yangi kelgan xabardagi «⚡ Slayd yaratish» tugmasini bosing. Hozircha faylni shu yerdan yuklab olishingiz mumkin.",true);
       return}
     if(had||!canShareKind(kind)){await shareNow(kind);return}
     // fayl tayyorlanishi uzoq davom etgani uchun yuborish yangi bosishni talab qiladi
@@ -2777,13 +2777,14 @@ async function tgSave(blob,name){
 (function(){
   try{
     const q=new URLSearchParams(location.search),api=q.get("api")||"";
-    if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(api)){sessionStorage.setItem("tp_api",api);try{localStorage.setItem("tp_api",api)}catch(_){}}
+    if(/^https:\/\/script\.google\.com\/(a\/[\w.-]+\/)?macros\/s\/[\w-]+\/exec$/.test(api)){sessionStorage.setItem("tp_api",api);try{localStorage.setItem("tp_api",api)}catch(_){}}
     const h=new URLSearchParams(location.hash.slice(1)).get("tgWebAppData");
     if(h) sessionStorage.setItem("tp_init",h);
   }catch(_){}
 })();
 function tgApi(){let v="";try{v=sessionStorage.getItem("tp_api")||""}catch(_){}if(!v){try{v=localStorage.getItem("tp_api")||""}catch(_){}}return v}
 function tgInit(){const W=window.Telegram&&Telegram.WebApp;if(W&&W.initData)return W.initData;try{return sessionStorage.getItem("tp_init")||""}catch(_){return ""}}
+function tgWhy(){if(!tgApi())return "bot eski tugma orqali ochilgan yoki bot kodi hali yangilanmagan.";if(!tgInit())return "ilova botdagi tugma orqali ochilmagan.";return ""}
 function tgCanBot(){return !!(window.IN_TG&&IN_TG()&&tgApi()&&tgInit())}
 function jsonp(url){return new Promise(res=>{const cb="tpcb_"+Date.now()+"_"+Math.floor(Math.random()*1e6),s=document.createElement("script");let done=false;
   const fin=v=>{if(done)return;done=true;try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();res(v)};
@@ -2823,6 +2824,9 @@ function tgSent(name){
 .botsave{display:flex;flex-direction:column;gap:8px;border-radius:16px;padding:14px;background:linear-gradient(135deg,#2a3fd6,#7b3fe4);color:#fff;box-shadow:0 10px 22px rgba(90,60,220,.35)}
 .botsave b{font:900 17px/1.2 "Montserrat",sans-serif}
 .botsave small{opacity:.92;font-size:13px;line-height:1.35}
+.botsave .bs-warn{margin-top:10px;background:#fff6d6;color:#5a3b00;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:600;line-height:1.4}
+.botsave .bs-warn b{display:inline;font-size:inherit;margin:0;color:#3a2bb8}
+.botsave .bs-warn button{display:block;width:100%;margin-top:8px;background:#3a2bb8;color:#fff;border:0;border-radius:10px;padding:10px;font-weight:800}
 .botsave .row button{background:#fff!important;color:#3a2bb8!important;border:0!important;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.15)}
 </style>
 <script>
@@ -2839,6 +2843,9 @@ window.addEventListener("load",()=>{setTimeout(()=>{
   blk.innerHTML='<b>🤖 Botning o\'ziga saqlash</b><small>Tayyor taqdimot fayl bo\'lib shu bot chatiga keladi — keyin uni ochishingiz yoki do\'stlaringizga yuborishingiz mumkin.</small>';
   a.textContent="🤖 PPTX — botga saqlash";b.textContent="🤖 PDF — botga saqlash";
   blk.append(row);if(l)l.remove();
+  if(typeof tgCanBot==="function"&&!tgCanBot()){const w=document.createElement("div");w.className="bs-warn";
+    w.innerHTML='⚠️ Bot chatiga yuborish hozir ishlamaydi: '+esc(tgWhy())+'<br>Botga qaytib <b>/start</b> yozing va yangi xabardagi <b>«⚡ Slayd yaratish»</b> tugmasini bosing.<button type="button" id="bsBack">💬 Botga qaytish</button>';
+    blk.append(w);w.querySelector("#bsBack").onclick=()=>{try{Telegram.WebApp.close()}catch(_){location.href="https://t.me/Pro_slidesgo_bot"}}}
   const h2=box.querySelector("h2");(h2?h2.nextSibling:box.firstChild).before(blk);
 },400)});
 </script>
