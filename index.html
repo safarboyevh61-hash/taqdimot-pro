@@ -1056,34 +1056,34 @@ function buildPlanSlides(title,sections,plan,mode,pool,n,sources,refs){refs=refs
   for(let r=0;r<refs.length;r+=RPS)slides.push({type:"content",kind:"refs",title:"Foydalanilgan adabiyotlar",bullets:refs.slice(r,r+RPS),start:r,imgs:[]});
   return{slides,short:false,units:units.length,empty:slides.filter(x=>x.empty).length}}
 
-// xulosa: boshidagi gaplarni takrorlamaydi — reja bandlari asosida yangi, umumlashtiruvchi matn tuziladi
+// xulosa: mavzuga oid aniq ma'lumotlardan (raqamlar, nomlar) qisqa umumlashma; slaydlar boshidagi gaplar takrorlanmaydi
 function conclusion(sections,topic){
   const lang=(document.getElementById("lang")||{}).value||"uz";if(lang!=="uz")return conclusionOld(sections);
-  topic=String(topic||deck.title||"").trim();const all=sections.flatMap(s=>s.sents||[]);
-  const clean=h=>String(h||"").split(": ")[0].replace(/^\d+\.\s*/,"").trim();
-  const items=[...new Set(sections.map(s=>clean(s.head)).filter(h=>h&&!INTRO.test(norm(h))&&!/^(xulosa|foydalanilgan|umumiy ma'lumot)/i.test(h)&&norm(h)!==norm(topic)))].slice(0,5);
-  const tk=keyStems(topic).map(k=>k.slice(0,5));
-  const kws=h=>{const sc=sections.filter(s=>clean(s.head)===h);const ss=sc.flatMap(s=>s.sents||[]);if(!ss.length)return[];
-    const cnt=new Map(),surf=new Map();
-    ss.forEach(s=>(s.match(/[\p{L}'ʻʼ‘’-]+/gu)||[]).forEach(w0=>{const w=w0.replace(/[ʻʼ‘’]/g,"'").replace(/^[-']+|[-']+$/g,"");if(/^\p{Lu}/u.test(w)&&!/^\p{Lu}\p{Ll}/u.test(w))return;
-      const k=stem(w);if(k.length<5||STOP.has(k)||GENERIC.test(k)||ADJ.test(k)||VERBISH.test(w.toLowerCase())||tk.some(t=>k.startsWith(t))||norm(h).includes(k.slice(0,5)))return;
-      cnt.set(k,(cnt.get(k)||0)+1);if(!surf.has(k))surf.set(k,k)}));
-    return [...cnt.entries()].filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>surf.get(k))};
+  topic=String(topic||deck.title||"").trim();
   const tw=topic.split(/\s+/),ai=tw.findIndex(w=>ASP.some(([re])=>re.test(stem(w))));
-  const ent=(ai>0?tw.slice(0,ai).join(" "):tw[0]||topic).replace(/(ning|dagi|da)$/i,""),aspE=aspectEn(keyStems(topic));
-  const out=[];
-  out.push(`Xulosa qilib aytganda, ushbu taqdimotda «${topic}» mavzusi ${items.length>1?items.length+" ta asosiy yo'nalish bo'yicha":"har tomonlama"} o'rganib chiqildi.`);
-  const conn=["Avvalo","Shuningdek","Bundan tashqari","Shu bilan birga","Nihoyat"],verbs=["batafsil yoritildi","tahlil qilindi","ko'rib chiqildi","misollar orqali ochib berildi","atroflicha tavsiflandi"];
-  const objs=["asosiy ma'lumotlar","muhim faktlar","o'ziga xos jihatlar","asosiy xususiyatlar","muhim jihatlar"];
-  const lc=t=>/^\p{Lu}\p{Lu}/u.test(t)?t:t.charAt(0).toLowerCase()+t.slice(1);
-  items.forEach((h,j)=>{const c=j===0?conn[0]:j===items.length-1&&items.length>2?conn[4]:conn[1+((j-1)%3)];
-    out.push(`${c}, «${lc(h)}» bo'yicha ${objs[j%objs.length]} ${verbs[j%verbs.length]}.`)});
-  out.push(`Taqdimotda keltirilgan ma'lumotlar ${topic}ning o'ziga xos xususiyatlari, rivojlanish bosqichlari va bugungi holati haqida yaxlit tasavvur hosil qilish imkonini beradi.`);
-  if(aspE==="education")out.push(`Ayniqsa, ${ent} tajribasini o'rganish O'zbekiston ta'lim tizimini yanada takomillashtirish uchun foydali xulosalar chiqarishga yordam beradi.`);
-  else if(aspE==="economy")out.push(`Bu tajribani o'rganish milliy iqtisodiyotimizni rivojlantirishda foydali g'oyalar berishi mumkin.`);
-  else if(aspE==="history")out.push(`Tarixiy tajribani o'rganish bugungi voqea-hodisalarni to'g'ri baholash va kelajakni oqilona rejalashtirishga yordam beradi.`);
-  else out.push(`Mazkur bilimlar nazariy tushunchalarni boyitish bilan birga, ularni amaliyotda qo'llash va boshqa tajribalar bilan qiyosiy tahlil qilish uchun ham muhim ahamiyatga ega.`);
-  out.push(`Umuman olganda, «${topic}» mavzusi dolzarb bo'lib, uni yanada chuqur o'rganish kelgusidagi ilmiy izlanishlar uchun keng imkoniyatlar ochadi.`);
+  const ent=(ai>0?tw.slice(0,ai).join(" "):tw[0]||topic).replace(/(ning|dagi|da)$/i,""),aspK=ai>=0?keyStems(tw.slice(ai).join(" ")):[],aspE=aspectEn(keyStems(topic));
+  const entT=keyStems(ent).map(pre4),aspT=aspK.length?aspectTerms(aspK):[];
+  const allS=sections.flatMap(s=>s.sents||[]),lowAll=" "+allS.join(" ")+" ";
+  const seen=new Set(),out=[];
+  // har bo'limdan eng ma'lumotli gap (bo'lim boshidagi 2 gap emas)
+  const pick=sc=>{const ss=(sc.sents||[]),from=ss.length>4?2:ss.length>2?1:0;
+    return ss.slice(from).filter(x=>x.length>=50&&x.length<=320&&!/…|\.\.\./.test(x)&&!seen.has(x)&&(!entT.length||hasAny(x,entT)||hasAny(x,aspT)))
+      .map(x=>({x,v:(/\d/.test(x)?2:0)+(hasAny(x,entT)?2:0)+(hasAny(x,aspT)?1.5:0)+Math.min(x.length,220)/220}))
+      .sort((a,b)=>b.v-a.v)[0]};
+  const short=s=>{if(s.length<=210)return s;const m=s.slice(90).search(/;\s|,\s(?:biroq|ammo|lekin|chunki|shuningdek|bu esa)\s/);
+    return m>=0?s.slice(0,90+m).replace(/[,;\s]+$/,"")+".":s};
+  // atoqli otlar (gap o'rtasida ham bosh harf bilan yoziladigan so'zlar) kichik harfga o'tkazilmaydi
+  const proper=new Set();allS.forEach(x=>x.split(/\s+/).slice(1).forEach(w=>{const b=w.replace(/[^\p{L}'ʻʼ‘’-]/gu,"");if(/^\p{Lu}/u.test(b))proper.add(stem(b))}));
+  const lc=s=>{const w=s.split(/\s+/)[0]||"",bare=w.replace(/[^\p{L}'ʻʼ‘’-]/gu,"");if(!bare||/^\d/.test(w)||/^\p{Lu}{2}/u.test(bare)||proper.has(stem(bare))||entT.some(e=>norm(bare).startsWith(e)))return s;
+    return s.charAt(0).toLowerCase()+s.slice(1)};
+  const conn=["Taqdimotda ko'rib chiqilganidek,","Shuningdek,","Bundan tashqari,","Shu bilan birga,","Ta'kidlash joizki,","Qolaversa,"];
+  let len=0;
+  for(const sc of sections){if(out.length>=5||len>780)break;const p=pick(sc);if(!p)continue;seen.add(p.x);const t=short(p.x);
+    out.push(`${conn[out.length%conn.length]} ${lc(t)}`);len+=t.length}
+  if(aspE==="education")out.push(`Umuman olganda, ${ent} ta'lim tizimi tajribasini o'rganish O'zbekiston ta'lim tizimini yanada takomillashtirish uchun foydali xulosalar chiqarishga yordam beradi.`);
+  else if(aspE==="economy")out.push(`Umuman olganda, ${ent} iqtisodiyoti tajribasini o'rganish milliy iqtisodiyotimizni rivojlantirishda foydali g'oyalar beradi.`);
+  else out.push(`Umuman olganda, «${topic}» haqidagi bu ma'lumotlar mavzuni yaxlit tushunish va undan amaliyotda foydalanish uchun muhim ahamiyatga ega.`);
+  if(out.length<3)return conclusionOld(sections).concat(out.slice(-1));
   return out}
 function conclusionOld(sections){const out=[];let len=0;const add=t=>{if(t.length>300||/…$|\.\.\.$/.test(t))return true;if(len+t.length>950||out.includes(t))return false;out.push(t);len+=t.length;return true};
   if(sections[0])sections[0].sents.slice(0,3).forEach(add);
@@ -1366,6 +1366,9 @@ function newReq(){let r="";const u=new Uint32Array(8);try{crypto.getRandomValues
 const normCode=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 function accessFor(req){return enc(h53(SALT+"|"+normCode(req)),6)}
 function getReq(){let r=lsGet("tp_req");if(!r){r=newReq();lsSet("tp_req",r)}return r}
+// muddati tugagan promo kodlar; ilgari ular bilan ochilgan cheksiz kirish ham bekor qilinadi
+const EXPIRED_PROMO=["KURSDOSHLAR","GEOGRAFIYA"];
+if(lsGet("tp_unlim")==="1"&&lsGet("tp_unlim_off")!=="1"){lsSet("tp_unlim",null)}lsSet("tp_unlim_off","1");
 const isDev=()=>lsGet("tp_dev")==="1",isUnlim=()=>lsGet("tp_unlim")==="1";
 const hasCredit=()=>lsGet("tp_credit")==="1";
 function canCreate(topic){return isDev()||isUnlim()||hasCredit()||(lsGet("tp_used_topic")&&lsGet("tp_used_topic")===norm(topic||""))}
@@ -1399,7 +1402,7 @@ function renderLock(){
     $("#accErr").textContent="Dasturchi kodi noto'g'ri."};
   $("#devGo").onclick=tryDev;$("#devIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryDev()});
   const tryCode=()=>{const v=$("#accIn").value.trim();if(!v)return;
-    if(normCode(v)==="KURSDOSHLAR"){lsSet("tp_unlim","1");renderLock();setStatus("Promo kod qabul qilindi ✓ Endi cheksiz taqdimot yaratishingiz mumkin.");return}
+    if(EXPIRED_PROMO.includes(normCode(v))){$("#accErr").textContent="Bu promo kodning muddati tugagan.";return}
     if(normCode(v)===accessFor(req)){lsSet("tp_credit","1");renderLock();setStatus("Kod qabul qilindi. Mavzuni yozib «Slayd yaratish»ni bosing.");return}
     $("#accErr").textContent="Promo kod noto'g'ri. Tekshirib, qaytadan kiriting."};
   $("#accGo").onclick=tryCode;$("#accIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryCode()});
