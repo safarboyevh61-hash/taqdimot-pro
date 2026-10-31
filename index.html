@@ -914,7 +914,7 @@ async function api(lang,params){
 
 // Gaplarga ajratish: nuqtadan keyin katta harf kelsagina yangi gap boshlanadi ("qad." kabi qisqartmalar buzilmaydi)
 function sentences(t){t=t.replace(/\s+/g," ").trim();
-  return t.split(/(?<=[.!?…])\s+(?=[A-ZА-ЯЁЎҚҒҲ0-9«"“(])/).map(x=>x.trim()).filter(x=>x.length>30&&x.length<600&&/[.!?…»")]$/.test(x))}
+  return t.split(/(?<=[.!?…])(?<!(?:^|[\s(."«„“])\p{Lu}\.)\s+(?=[A-ZА-ЯЁЎҚҒҲ0-9«"“(])/u).map(x=>x.trim()).filter(x=>x.length>30&&x.length<600&&/[.!?…»")]$/.test(x))}
 function shorten(s,n=240){return s} // gaplar endi kesilmaydi ("…" bilan chala qolmasin)
 // juda uzun gap: vergul/nuqtali vergul joyidan ikki to'liq qismga bo'linadi
 function splitLong(s,max){if(s.length<=max)return[s];const mid=Math.floor(s.length/2);let best=-1;
@@ -1189,14 +1189,22 @@ function citeFormat(inner){const parts=splitTop(inner,"|");const name=clean(part
   return {txt,web:isWeb||(!pub&&!year&&!!P.url),url:P.url||""}}
 const LITH=/^(adabiyot|adabiyotlar|asosiy adabiyotlar|manba va adabiyotlar|литература|библиография|bibliography|further reading|sources|works cited)$/i;
 async function wikitext(lang,title){try{const d=await api(lang,{action:"parse",page:title,prop:"wikitext",formatversion:2,redirects:1});return(d.parse&&d.parse.wikitext)||""}catch(_){return""}}
+// kitob emas: iqtibos, izoh yoki oddiy gap ("Behbudiy shunday deydi: …") — adabiyotlar ro'yxatiga olinmaydi
+const PROSE=new RegExp("(?<![\\p{L}'])(deydi|deydilar|degan|dedi|deb yoz\\p{L}*|deb ata\\p{L}*|shunday|masalan|ishlatgan|aytgan|aytadi|ta'kidla\\p{L}*|говорит|сказал|писал|пишет|по словам|например|said|says|wrote|according to|for example)(?![\\p{L}'])","iu");
+const BOOKM=/(1[5-9]\d\d|20[0-3]\d)|\/\/|—|nashr|izdat|издат|изд\.|publish|press|verlag|edition|toshkent|tashkent|moskva|москва|м\.|спб|london|new york|isbn|jild|том|т\.\s*\d|vol\.|с\.\s*\d|pp?\.\s*\d|b\.\s*\d/i;
+function bookLike(t,strict){const x=norm(String(t||""));if(PROSE.test(x))return false;
+  const q=t.match(/[“"«„][^”"»“]{2,}[”"»“]/g)||[];if(q.some(s=>s.length>60&&/[,;:!?]\s/.test(s)))return false;
+  if(t.split(/\s+/).length>45)return false;
+  if(strict&&!BOOKM.test(t))return false;
+  return true}
 function refsFrom(wt){const books=[],web=[];if(!wt)return{books,web};
   // 1) "Adabiyot" / "Литература" bo'limlaridagi qatorlar
   const re=/^(=+)\s*([^=]+?)\s*\1\s*$/gm;let m;const heads=[];while((m=re.exec(wt)))heads.push({lvl:m[1].length,name:m[2].trim(),at:m.index,end:re.lastIndex});
   heads.forEach((h,k)=>{if(!LITH.test(h.name))return;const nx=heads.slice(k+1).find(x=>x.lvl<=h.lvl);const body=wt.slice(h.end,nx?nx.at:wt.length);
-    body.split("\n").filter(l=>/^[*#]/.test(l)).forEach(l=>{const tp=templates(l).map(t=>citeFormat(t.inner)).find(Boolean);
-      const t=tp?tp.txt:clean(l);if(t.length>12&&t.length<400&&!/^https?:/.test(t))books.push(t)})});
+    body.split("\n").filter(l=>/^[*#]/.test(l)&&!/^[*#]+\s*\{\{\s*(main|see also|asosiy|qarang)/i.test(l)).forEach(l=>{const tp=templates(l).map(t=>citeFormat(t.inner)).find(Boolean);
+      const t=tp?tp.txt:clean(l);if(t.length>12&&t.length<400&&!/^https?:/.test(t)&&bookLike(t,!tp))books.push(t)})});
   // 2) Matndagi kitob/sayt havolalari
-  templates(wt).forEach(t=>{const c=citeFormat(t.inner);if(!c)return;(c.web?web:books).push(c.txt)});
+  templates(wt).forEach(t=>{const c=citeFormat(t.inner);if(!c)return;if(c.web)web.push(c.txt);else if(bookLike(c.txt,false))books.push(c.txt)});
   return{books,web}}
 // Manbaning tilini aniqlash: o'zbekcha, ruscha yoki inglizcha
 const UZW=/(\b(va|uchun|nashriyot|nashriyoti|darslik|darsligi|qo.llanma|qo.llanmasi|toshkent|samarqand|o.zbekiston|o.zme|ensiklopediya|ensiklopediyasi|tarixi|geografiyasi|asarlar|jild|sinf|universiteti|akademiyasi|fanlar|yil|yillar|bo.yicha|haqida|o.qituvchi|sharq|ma.naviyat|ilm|fan)\b)|[a-z](ning|lari|larning|dagi|iston)\b|(o|g)[‘ʻ’`'][a-z]/i;
@@ -1205,11 +1213,11 @@ function refLang(t){if(/[а-яё]/i.test(t))return /[ўқғҳ]/i.test(t)?"uz":"r
 const WIKI_NAME={uz:"Vikipediya, ochiq ensiklopediya",ru:"Википедия, свободная энциклопедия",en:"Wikipedia, the free encyclopedia"};
 async function collectRefs(lang,mainTitle,sources){
   const books=[],web=[],seen=new Set();
-  const push=(arr,t)=>{if(refLang(t)!==lang)return;const k=norm(t).replace(/[^a-zа-яёўқғҳ0-9]/g,"").slice(0,60);if(k.length<6||seen.has(k))return;seen.add(k);arr.push(t)};
+  const push=(arr,t)=>{if(refLang(t)!==lang||!bookLike(t,false))return;const k=norm(t).replace(/[^a-zа-яёўқғҳ0-9]/g,"").slice(0,60);if(k.length<6||seen.has(k))return;seen.add(k);arr.push(t)};
   // faqat tanlangan tildagi maqolalardan va faqat shu tildagi kitoblar
   for(const sc of sources.filter(x=>!x.lang).slice(0,6)){setStatus(`Adabiyotlar yig'ilmoqda: «${sc.title}»…`);const r=refsFrom(await wikitext(lang,sc.title));r.books.forEach(t=>push(books,t));r.web.forEach(t=>push(web,t))}
   if(books.length<6){try{const ml=await api(lang,{action:"query",list:"search",srsearch:"morelike:"+mainTitle,srlimit:5});
-    for(const h of ((ml.query&&ml.query.search)||[])){if(books.length>=10)break;if(sources.some(x=>x.title===h.title))continue;const r=refsFrom(await wikitext(lang,h.title));r.books.forEach(t=>push(books,t))}}catch(_){}}
+    for(const h of ((ml.query&&ml.query.search)||[])){if(books.length>=10)break;if(sources.some(x=>x.title===h.title))continue;if(/\([^)]+\)\s*$/.test(h.title))continue;const r=refsFrom(await wikitext(lang,h.title)),ms=keyStems(mainTitle).map(pre4);r.books.forEach(t=>{if(books.length<5||hasAny(t.split(" — ")[0],ms))push(books,t)})}}catch(_){}}
   // kamida 5 ta manba: o'z tilidagi kitoblar kam bo'lsa — ruscha/inglizcha maqolalardagi haqiqiy kitoblar (asl tilida)
   if(books.length<5)for(const to of ["ru","en"]){if(to===lang||books.length>=8)continue;
     const t=await langTitle(lang,mainTitle,to);if(!t)continue;setStatus(`Adabiyotlar yig'ilmoqda (${to==="ru"?"ruscha":"inglizcha"} manba)…`);
@@ -1266,6 +1274,24 @@ async function existingFirst(lang,list){list=[...new Set(list.filter(Boolean))].
 // turini bildiruvchi so'zlar: "Avstraliya materigi"da asosiy so'z — Avstraliya
 const CLS=/^(materi|materik|davlat|shahar|shahr|daryo|ko.l|tog|viloyat|mamlakat|okean|dengiz|orol|sayyora|respublika|tuman|qit.a|ko.rfaz|cho.l|vodiy)/;
 const genStrip=w=>w.replace(/(ning|niki)$/i,"");
+// bir xil nomli, lekin butunlay boshqa narsa haqidagi maqolalar aralashmasin ("Yevrosiyo" materigi ↔ "Yevrosiyo" it zoti)
+const KB="(?<![\\p{L}'])",KE="(?![\\p{L}'])",kre=s=>new RegExp(KB+"("+s+")"+KE,"u");
+const KINDS={
+  uz:{hayvon:kre("it zoti|it zotlari|ov iti|qo'riqchi it|itlar|itlari|itlarning|zoti|zotidir|zotlari|zotlaridan|kennel|kuchuk|kuchuklar"),
+      asar:kre("film|filmi|kinofilm|kinofilmi|serial|seriali|teleserial|multfilm|multfilmi|albom|albomi|qo'shiq|qo'shig'i|singl|telekanal|gazeta|gazetasi|jurnal|jurnali|roman|romani|qissa|qissasi|videoo'yin|kompyuter o'yini"),
+      klub:kre("futbol klubi|sport klubi|xokkey klubi|basketbol klubi|fk|kompaniya|kompaniyasi|brend"),
+      qishloq:kre("qishloq(?! xo'jalig)|qishlog'i|aholi punkti")},
+  ru:{hayvon:kre("порода|породы|порода собак|собак|собака"),asar:kre("фильм|альбом|песня|сингл|роман|журнал|газета|телесериал|мультфильм|компьютерная игра"),
+      klub:kre("футбольный клуб|фк|компания|бренд"),qishloq:kre("село|деревня|посёлок|аул")},
+  en:{hayvon:kre("dog breed|breed of dog|breed|kennel|dogs?"),asar:kre("film|album|song|novel|magazine|newspaper|video game|tv series|television series"),
+      klub:kre("football club|fc|company|brand"),qishloq:kre("village|hamlet")}};
+function kindsOf(lang,txt){const P=KINDS[lang]||KINDS.uz,x=norm(String(txt||""));return Object.keys(P).filter(k=>P[k].test(x))}
+const leadOf=pg=>{const L=String((pg&&pg.extract)||"").split(/\n==/)[0];return sentences(L).slice(0,2).join(" ")||L.slice(0,300)};
+function otherKind(lang,pg,allowed){return kindsOf(lang,leadOf(pg)).some(k=>!allowed.includes(k))}
+const baseT=x=>norm(x).replace(/\s*\([^)]*\)\s*$/,"").trim();
+// "Yevrosiyo (it)", "Samarqand (gazeta)" — asosiy maqola bilan bir nomli, boshqa ma'nodagi maqola
+function homoTitle(t,mainT,topic){const n=norm(t);if(/\((ma'nolari|значения|disambiguation)\)/.test(n))return true;
+  if(!/\([^)]+\)\s*$/.test(t)||n===norm(mainT))return false;const b=baseT(t);return b===baseT(mainT)||b===norm(topic||"")}
 async function findMain(lang,topic){
   const words=topic.split(/\s+/).filter(Boolean),keys=keyStems(topic),n=words.length;
   let headKey=lang==="uz"?keys[keys.length-1]:keys[0];
@@ -1311,7 +1337,8 @@ const EN_ASP={education:/educat|school|universit|college|pupil|student|classroom
 function relevantCommons(q,list){const name=u=>{try{return decodeURIComponent(u.split("/").pop()).toLowerCase()}catch(_){return u.toLowerCase()}};
   const ws=q.toLowerCase().split(/[^a-z\u00c0-\u024f\u0400-\u04ff']+/).filter(w=>w.length>=4&&!["with","from","the","and"].includes(w));
   const asp=Object.keys(EN_ASP).find(k=>ws.some(w=>w.startsWith(k.slice(0,6))));
-  return list.filter(u=>{const n=name(u);if(asp)return EN_ASP[asp].test(n);return ws.some(w=>n.includes(w.slice(0,Math.max(4,w.length-2))))})}
+  const HOMO=/(^|[^a-z])(dog|dogs|puppy|puppies|hund|hunde|welpe|chien|perro|kitten|breed|kennel|eurasier|album|cover|poster|jersey|logo|fc)(?=[^a-z]|$)/,ql=q.toLowerCase();
+  return list.filter(u=>{const n=name(u);if(HOMO.test(n)&&!HOMO.test(ql))return false;if(asp)return EN_ASP[asp].test(n);return ws.some(w=>n.includes(w.slice(0,Math.max(4,w.length-2))))})}
 async function collectImages(lang,main,extra,n,seeds){
   const want=Math.max(n*2,16);let pool=[];const add=a=>{pool=[...new Set(pool.concat(a))]};
   for(const sd of seeds||[]){setStatus("Mavzuga oid rasmlar yig'ilmoqda…");add(await pageImages(sd.lang,sd.title))}
@@ -1385,7 +1412,7 @@ async function focusedSections(lang,ent,aspKeys,topic,f){
   const genTitle=f&&f.main&&!hasAny(f.main,entT)&&hasAny(f.main,terms)?f.main:null;
   // 2) asosiy nom maqolasi: jihatga oid bo'limlar to'liq, qolganidan faqat jihatga oid gaplar
   setStatus(`«${ent.title}» maqolasidan «${aspPhrase}» haqidagi qismlar olinmoqda…`);
-  const E=await article(lang,ent.title);
+  const E=await article(lang,ent.title);const allowF=[...new Set(kindsOf(lang,leadOf(E)).concat(kindsOf(lang,topic)))];
   parseSections(E.extract||"",E.title,E.title).forEach(sc=>{
     if(sc.head!==E.title&&hasAny(sc.head,terms)){if(addSec(sc.head.split(": ").pop(),sc.sents,E.title)&&!used.includes(E))used.push(E)}
     else if(addSec(aspPhrase,sc.sents.filter(x=>hasAny(x,terms)),E.title)&&!used.includes(E))used.push(E)});
@@ -1397,7 +1424,7 @@ async function focusedSections(lang,ent,aspKeys,topic,f){
   for(const t of hits){if(fetched>=8)break;const tEnt=hasAny(t,entT),tAsp=hasAny(t,terms);
     // nomida asosiy nom bo'lmagan maqoladan faqat o'sha nomni tilga olgan gaplar olinadi ("Livan ta'lim tizimi"dan hech narsa olinmaydi)
     fetched++;setStatus(`Qo'shimcha manba o'qilmoqda: «${t}»…`);
-    try{const pg=await article(lang,t);let got=0;
+    try{if(homoTitle(t,E.title,topic))continue;const pg=await article(lang,t);let got=0;if(otherKind(lang,pg,allowF))continue;
       parseSections(pg.extract||"",pg.title,pg.title).forEach(sc=>{const h=sc.head===pg.title?pg.title:sc.head.split(": ").pop();
         if(tEnt&&tAsp)got+=addSec(h,sc.sents,pg.title);
         else got+=addSec(tAsp?pg.title:aspPhrase,sc.sents.filter(x=>hasAny(x,entT)&&(tAsp||hasAny(x,terms))),pg.title)});
@@ -1502,7 +1529,8 @@ async function generate(force){
       const sr=await api(lang,{action:"query",list:"search",srsearch:topic,srlimit:10});
       const cands=[...new Set(((sr.query&&sr.query.search)||[]).map(h=>h.title).concat(f.others||[]))].filter(t=>t!==main.title).slice(0,6);
       let best=main,bestSc=Math.min(sentN(main),120)*(1+textHits(main));
-      for(const t of cands){const pg=await article(lang,t),hn=textHits(pg);if(hn<Math.min(2,topicKeys.length))continue;
+      const allow0=[...new Set(kindsOf(lang,leadOf(main)).concat(kindsOf(lang,topic)))];
+      for(const t of cands){if(homoTitle(t,main.title,topic))continue;const pg=await article(lang,t),hn=textHits(pg);if(otherKind(lang,pg,allow0))continue;if(hn<Math.min(2,topicKeys.length))continue;
         const sc=Math.min(sentN(pg),120)*(1+hn)*(1+relevance(pg.title,topicKeys)*.5);if(sc>bestSc*1.5){best=pg;bestSc=sc}}
       main=best}catch(e){if(e.message==="net"||e.message==="csp")throw e}}
     const shown=cap(topic||main.title); // sarlavhaga har doim foydalanuvchi yozgan mavzu qo'yiladi
@@ -1536,14 +1564,15 @@ async function generate(force){
     const coreK=keyStems(topic||main.title).filter(k=>!GENERIC.test(k)&&!STOP.has(k)&&!CLS.test(k)),aspK=coreK.filter(k=>ASP.some(([re])=>re.test(k))),entK=coreK.filter(k=>!aspK.includes(k));
     const aspT=aspK.length?aspectTerms(aspK):[];
     const fitsBoth=t=>{const x=norm(t);if(aspK.length&&!aspT.some(w=>x.includes(w)))return false;if(aspK.length&&entK.length&&!entK.some(k=>relevance(t,[k])>0))return false;return true};
-    rel=rel.filter(t=>onTopic(t)&&fitsBoth(t)&&!(norm(t).endsWith(tn)&&norm(t)!==tn)&&!(norm(t).endsWith(norm(main.title))&&norm(t)!==norm(main.title)));
+    const allowK=[...new Set(kindsOf(lang,leadOf(main)).concat(kindsOf(lang,topic||main.title)))];
+    rel=rel.filter(t=>!homoTitle(t,main.title,topic)&&onTopic(t)&&fitsBoth(t)&&!(norm(t).endsWith(tn)&&norm(t)!==tn)&&!(norm(t).endsWith(norm(main.title))&&norm(t)!==norm(main.title)));
     // to'liq matnli qidiruv natijalari ham (sarlavhasida mavzu so'zi bo'lmasa ham, matni mavzuga oid bo'lsa)
     if(sentTotal()<wantS()){try{const sr=await api(lang,{action:"query",list:"search",srsearch:topic||main.title,srlimit:12});
-      ((sr.query&&sr.query.search)||[]).forEach(h=>{if(h.title!==main.title&&!rel.includes(h.title)&&fitsBoth(h.title))rel.push("~"+h.title)})}catch(_){}}
+      ((sr.query&&sr.query.search)||[]).forEach(h=>{if(h.title!==main.title&&!rel.includes(h.title)&&fitsBoth(h.title)&&!homoTitle(h.title,main.title,topic))rel.push("~"+h.title)})}catch(_){}}
     for(let t of rel){if(sentTotal()>=wantS())break;
       const loose=t.startsWith("~");if(loose)t=t.slice(1);if(sources.some(x=>x.title===t))continue;
       setStatus(`Qo'shimcha manba o'qilmoqda: «${t}»…`);
-      try{const pg=await article(lang,t);if(loose&&textHits(pg)<Math.min(2,topicKeys.length))continue;const ss=parseSections(pg.extract||"",pg.title,pg.title);
+      try{const pg=await article(lang,t);if(loose&&textHits(pg)<Math.min(2,topicKeys.length))continue;if(otherKind(lang,pg,allowK))continue;const ss=parseSections(pg.extract||"",pg.title,pg.title);
         if(ss.reduce((a,s)=>a+s.sents.length,0)<3)continue;
         ss.forEach(s=>{const last=s.head.split(": ").pop();s.head=s.head===pg.title?pg.title:pg.title+": "+last});
         secs=secs.concat(ss);sources.push({title:pg.title,url:wikiUrl(lang,pg.title)});extra.push(pg)}catch(_){}}
