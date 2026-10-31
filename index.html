@@ -2386,6 +2386,7 @@ function canShareKind(kind){try{const b=BLOBS[kind];if(!navigator.share||!naviga
 async function runTelegram(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const had=!!BLOBS[kind];await buildBlob(kind);
+    if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(BLOBS[kind],fname(kind)))return}
     if(had||!canShareKind(kind)){await shareNow(kind);return}
     // fayl tayyorlanishi uzoq davom etgani uchun yuborish yangi bosishni talab qiladi
     const box=$("#dlLink");box.hidden=false;const mb=(BLOBS[kind].size/1048576).toFixed(1);
@@ -2725,6 +2726,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 // Telegram ichida PPTX/PDF yuklab olish: fayl vaqtincha internetga joylanadi va Telegram o'zi yuklab beradi
 async function tgSave(blob,name){
+  if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(blob,name))return "tg"}
   dlStatus("Fayl tayyorlanmoqda… (Telegram ichida yuklab olish uchun)");
   const link=await uploadTemp(blob,name);
   if(!link){ dlStatus("Faylni tayyorlab bo'lmadi. Internetni tekshiring yoki saytni Chrome'da oching.",true); return "tg"; }
@@ -2736,6 +2738,60 @@ async function tgSave(blob,name){
              :`Fayl tayyor. «Faylni yuklab olish» tugmasini bosing — u brauzerda ochilib, yuklanadi.`);
   return "tg";
 }
+</script>
+
+<script>
+/* ===== Telegram bot ichida: tayyor PPTX/PDF faylni bot chatiga yuborish ===== */
+(function(){
+  try{
+    const q=new URLSearchParams(location.search),api=q.get("api")||"";
+    if(/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(api)) sessionStorage.setItem("tp_api",api);
+    const h=new URLSearchParams(location.hash.slice(1)).get("tgWebAppData");
+    if(h) sessionStorage.setItem("tp_init",h);
+  }catch(_){}
+})();
+function tgApi(){try{return sessionStorage.getItem("tp_api")||""}catch(_){return ""}}
+function tgInit(){const W=window.Telegram&&Telegram.WebApp;if(W&&W.initData)return W.initData;try{return sessionStorage.getItem("tp_init")||""}catch(_){return ""}}
+function tgCanBot(){return !!(window.IN_TG&&IN_TG()&&tgApi()&&tgInit())}
+function jsonp(url){return new Promise(res=>{const cb="tpcb_"+Date.now()+"_"+Math.floor(Math.random()*1e6),s=document.createElement("script");let done=false;
+  const fin=v=>{if(done)return;done=true;try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();res(v)};
+  window[cb]=fin;s.onerror=()=>fin(undefined);s.src=url+(url.includes("?")?"&":"?")+"cb="+cb;document.head.append(s);setTimeout(()=>fin(undefined),15000)})}
+async function tgBotSend(blob,name){
+  const api=tgApi(),init=tgInit();if(!api||!init)return false;
+  const mb=(blob.size/1048576).toFixed(1);
+  if(blob.size>45*1048576){dlStatus(`Fayl juda katta (${mb} MB) — bot orqali yuborib bo'lmaydi. Slaydlar sonini kamaytiring.`,true);return false}
+  dlStatus(`📤 Fayl botga yuborilmoqda (${mb} MB)… Internet tezligiga qarab biroz vaqt oladi.`);
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const ext=(name.split(".").pop()||"").toLowerCase(),nice=(typeof tgName==="function"&&deck&&deck.title)?tgName(ext):name;
+  const caption=["📊 "+(deck.title||"Taqdimot"),deck.author?"👤 Tayyorladi: "+deck.author:"",[deck.uni,deck.fac].filter(Boolean).join(", "),"","🎓 Taqdimot Pro"].filter((x,i,a)=>x||(i>0&&a[i-1])).join("\n");
+  try{
+    const b64=await blobToB64(blob);
+    await fetch(api,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({act:"fayl",id,initData:init,name:nice,mime:blob.type||"application/octet-stream",b64,caption})});
+  }catch(_){dlStatus("Faylni yuborib bo'lmadi: internet aloqasini tekshiring.",true);return false}
+  dlStatus("⏳ Bot faylni chatga joylamoqda…");
+  for(let i=0;i<40;i++){
+    const st=await jsonp(api+"?act=st&id="+id);
+    if(st&&st.ok){tgSent(nice);return true}
+    if(st&&st.ok===false){dlStatus("❌ "+st.msg,true);return false}
+    await new Promise(r=>setTimeout(r,2500));
+  }
+  dlStatus("Fayl yuborildi, lekin javob kechikyapti. Bot chatini tekshiring — bir ozdan keyin paydo bo'ladi.");
+  return true}
+function tgSent(name){
+  const box=$("#dlLink");box.hidden=false;
+  box.innerHTML=`<div style="background:#e8f7ef;border:2px solid #22c08a;border-radius:14px;padding:14px;text-align:center;color:#11663f;font-weight:700">
+      ✅ «${esc(name)}» bot chatiga yuborildi!<br><small style="font-weight:600;color:#2f6f53">Chatga qayting — fayl o'sha yerda. Uni bosib ochishingiz yoki do'stlaringizga yuborishingiz mumkin.</small></div>
+    <button type="button" class="dl-a tgb" id="tgBack">💬 Bot chatiga qaytish</button>`;
+  $("#tgBack").onclick=()=>{try{Telegram.WebApp.close()}catch(_){}};
+  dlStatus("✅ Fayl bot chatiga yuborildi.")}
+</script>
+
+<script>
+// bot ichida ochilganda tugma yozuvlari: fayl bot chatiga boradi
+window.addEventListener("load",()=>{setTimeout(()=>{if(!(typeof tgCanBot==="function"&&tgCanBot()))return;
+  const l=[...document.querySelectorAll("#dlBox .lbl")].find(x=>/Telegram/.test(x.textContent));if(l)l.textContent="Bot chatiga fayl bo'lib yuborish";
+  const a=document.getElementById("tgPptx"),b=document.getElementById("tgPdf");if(a)a.textContent="📤 PPTX → bot chatiga";if(b)b.textContent="📤 PDF → bot chatiga"},600)});
 </script>
 </body>
 </html>
