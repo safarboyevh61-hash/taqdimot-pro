@@ -340,6 +340,7 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 .upd-b .primary{background:#ffd84a;border-color:#ffd84a;color:#0d2569;font-weight:700;padding:10px 14px}
 #updX{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;padding:10px 13px}
 @keyframes updIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.dr-hd span span,.sh-ttl span span{display:inline;font:inherit;-webkit-line-clamp:unset;overflow:visible;text-transform:inherit;letter-spacing:inherit}
 </style>
 </head>
 <body>
@@ -710,13 +711,17 @@ function shInfo(){const d=design();if(d.sh==null)return null;const n=d.sh,[k,x,y
   L=Math.max(2.6,Math.min(cx-cw/2,100-2.6-cw));Rr=Math.min(97.4,L+cw);T=Math.max(2,Math.min(T,Hs*.3));
   return Object.assign(base,{band:false,L,R:Rr,T})}
 function shBg(T){return T.bg?`<img class="bgimg" src="${T.bg}" alt="" style="filter:none">`:`<div class="bgimg" style="background:linear-gradient(180deg,${T.tint},#fff)"></div>`}
-function shHead(T,i,title){
-  if(T.band){const hh=Math.max(6.4,T.bh*.58);return `<div class="sh-ttl${T.dark?" dk":""}" style="left:${T.ex0.toFixed(2)}cqw;width:${(T.ex1-T.ex0).toFixed(2)}cqw;top:${((T.bh-hh)/2).toFixed(2)}cqw;height:${hh.toFixed(2)}cqw"><b>${i+1}</b><span>${esc(title)}</span></div>`}
-  return `<div class="sh-ttl${T.dark?" dk":""}" style="left:${T.L.toFixed(2)}cqw;width:${(T.R-T.L).toFixed(2)}cqw;top:${T.T.toFixed(2)}cqw;height:7cqw"><b>${i+1}</b><span>${esc(title)}</span></div>`}
+// sarlavha tasmasi har slaydda boshqa rangda; mavzu nomi ikki rangda
+const HEADCOL=[["#2a5ad6","#0d2569"],["#22a548","#0d5a20"],["#ef4a2b","#8a120b"],["#9a3fd0","#4a1470"],["#f08a1c","#9a4a06"],["#16a2c9","#055a73"],["#d6336c","#7a0f3a"],["#3f51b5","#1a237e"]];
+function hdStyle(i){const c=HEADCOL[i%HEADCOL.length];return `background:linear-gradient(135deg,${c[0]},${c[1]});`}
+function twoToneHd(t){const w=String(t).split(/\s+/),k=Math.ceil(w.length/2);return w.length<2?`<span style="color:#fff">${esc(t)}</span>`:`<span style="color:#fff">${esc(w.slice(0,k).join(" "))}</span> <span style="color:#ffd84a">${esc(w.slice(k).join(" "))}</span>`}
+function shHead(T,i,title){const c=HEADCOL[i%HEADCOL.length],st=`${hdStyle(i)}color:#fff;border-color:#ffd84a;`,num=`<b style="background:#ffd84a;color:${c[1]};border-color:#fff">${i+1}</b>`;
+  if(T.band){const hh=Math.max(6.4,T.bh*.58);return `<div class="sh-ttl" style="${st}left:${T.ex0.toFixed(2)}cqw;width:${(T.ex1-T.ex0).toFixed(2)}cqw;top:${((T.bh-hh)/2).toFixed(2)}cqw;height:${hh.toFixed(2)}cqw">${num}<span>${twoToneHd(title)}</span></div>`}
+  return `<div class="sh-ttl" style="${st}left:${T.L.toFixed(2)}cqw;width:${(T.R-T.L).toFixed(2)}cqw;top:${T.T.toFixed(2)}cqw;height:7cqw">${num}<span>${twoToneHd(title)}</span></div>`}
 function shWrap(html,s,i,T){
   html=html.replace(/<img class="bgimg"[^>]*>/,"").replace('<div class="dr-shade"></div>',"");
   html=html.replace(/(<div class="slide dr" style="[^"]*)">/,`$1--sa:${T.a1};">`+shBg(T));
-  html=html.replace(/<div class="dr-hd">[\s\S]*?<\/span><\/div><svg class="dr-no"[\s\S]*?<\/svg>/,shHead(T,i,deck.title||s.title));
+  html=html.replace(/<div class="dr-hd"[^>]*>[\s\S]*?<\/span><\/div><svg class="dr-no"[\s\S]*?<\/svg>/,shHead(T,i,deck.title||s.title));
   const pos=T.band?`;top:${(T.bh+2.8).toFixed(2)}cqw`:`;top:${(T.T+8.8).toFixed(2)}cqw;left:${T.L.toFixed(2)}cqw;right:${(100-T.R).toFixed(2)}cqw`;
   return html.replace(/class="dr-main" style="([^"]*)"/,(m,st)=>`class="dr-main" style="${st}${pos}"`)}
 function shCover(s,i,T){
@@ -871,7 +876,7 @@ function buildSlides(title,sections,pool,n,sources,refs){refs=refs||[];
   if(reja.length<3)reja=[...new Set(reja.concat(pick.map(x=>short(x.head))))].filter(h=>norm(h)!==norm(title));
   reja=[...new Set(reja.map(short))].slice(0,7);const tailR=["Xulosa"].concat(refs.length?["Foydalanilgan adabiyotlar"]:[]);
   slides.splice(1,0,{type:"content",kind:"reja",title:"Reja",bullets:reja.concat(tailR),plain:tailR.length,imgs:pool.length>1?[pool[pool.length-1]]:[]});
-  slides.push({type:"content",kind:"xulosa",title:"Xulosa",bullets:conclusion(sections),imgs:[]});
+  slides.push({type:"content",kind:"xulosa",title:"Xulosa",bullets:conclusion(sections,title),imgs:[]});
   for(let r=0;r<refs.length;r+=RPS)slides.push({type:"content",kind:"refs",title:"Foydalanilgan adabiyotlar",bullets:refs.slice(r,r+RPS),start:r,imgs:[]});
   return {slides,short:pick.length<room}}
 const wikiUrl=(lang,t)=>`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(t.replace(/ /g,"_"))}`;
@@ -1047,11 +1052,40 @@ function buildPlanSlides(title,sections,plan,mode,pool,n,sources,refs){refs=refs
   const tailR=["Xulosa"].concat(refs.length?["Foydalanilgan adabiyotlar"]:[]);
   slides.splice(1,0,{type:"content",kind:"reja",title:"Reja",bullets:bullets.concat(tailR),levels:levels.concat(tailR.map(()=>0)),nums,plain:tailR.length,imgs:pool.length>1?[pool[pool.length-1]]:[]});
   const all=plan.flatMap(it=>[{head:it.title,sents:it.sents}].concat(it.subs.map(sb=>({head:sb.title,sents:sb.sents})))).filter(x=>x.sents.length);
-  slides.push({type:"content",kind:"xulosa",title:"Xulosa",bullets:conclusion(all.length?all:sections),imgs:[]});
+  slides.push({type:"content",kind:"xulosa",title:"Xulosa",bullets:conclusion(all.length?all:sections,title),imgs:[]});
   for(let r=0;r<refs.length;r+=RPS)slides.push({type:"content",kind:"refs",title:"Foydalanilgan adabiyotlar",bullets:refs.slice(r,r+RPS),start:r,imgs:[]});
   return{slides,short:false,units:units.length,empty:slides.filter(x=>x.empty).length}}
 
-function conclusion(sections){const out=[];let len=0;const add=t=>{if(t.length>300||/…$|\.\.\.$/.test(t))return true;if(len+t.length>950||out.includes(t))return false;out.push(t);len+=t.length;return true};
+// xulosa: boshidagi gaplarni takrorlamaydi — reja bandlari asosida yangi, umumlashtiruvchi matn tuziladi
+function conclusion(sections,topic){
+  const lang=(document.getElementById("lang")||{}).value||"uz";if(lang!=="uz")return conclusionOld(sections);
+  topic=String(topic||deck.title||"").trim();const all=sections.flatMap(s=>s.sents||[]);
+  const clean=h=>String(h||"").split(": ")[0].replace(/^\d+\.\s*/,"").trim();
+  const items=[...new Set(sections.map(s=>clean(s.head)).filter(h=>h&&!INTRO.test(norm(h))&&!/^(xulosa|foydalanilgan|umumiy ma'lumot)/i.test(h)&&norm(h)!==norm(topic)))].slice(0,5);
+  const tk=keyStems(topic).map(k=>k.slice(0,5));
+  const kws=h=>{const sc=sections.filter(s=>clean(s.head)===h);const ss=sc.flatMap(s=>s.sents||[]);if(!ss.length)return[];
+    const cnt=new Map(),surf=new Map();
+    ss.forEach(s=>(s.match(/[\p{L}'ʻʼ‘’-]+/gu)||[]).forEach(w0=>{const w=w0.replace(/[ʻʼ‘’]/g,"'").replace(/^[-']+|[-']+$/g,"");if(/^\p{Lu}/u.test(w)&&!/^\p{Lu}\p{Ll}/u.test(w))return;
+      const k=stem(w);if(k.length<5||STOP.has(k)||GENERIC.test(k)||ADJ.test(k)||VERBISH.test(w.toLowerCase())||tk.some(t=>k.startsWith(t))||norm(h).includes(k.slice(0,5)))return;
+      cnt.set(k,(cnt.get(k)||0)+1);if(!surf.has(k))surf.set(k,k)}));
+    return [...cnt.entries()].filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>surf.get(k))};
+  const tw=topic.split(/\s+/),ai=tw.findIndex(w=>ASP.some(([re])=>re.test(stem(w))));
+  const ent=(ai>0?tw.slice(0,ai).join(" "):tw[0]||topic).replace(/(ning|dagi|da)$/i,""),aspE=aspectEn(keyStems(topic));
+  const out=[];
+  out.push(`Xulosa qilib aytganda, ushbu taqdimotda «${topic}» mavzusi ${items.length>1?items.length+" ta asosiy yo'nalish bo'yicha":"har tomonlama"} o'rganib chiqildi.`);
+  const conn=["Avvalo","Shuningdek","Bundan tashqari","Shu bilan birga","Nihoyat"],verbs=["batafsil yoritildi","tahlil qilindi","ko'rib chiqildi","misollar orqali ochib berildi","atroflicha tavsiflandi"];
+  const objs=["asosiy ma'lumotlar","muhim faktlar","o'ziga xos jihatlar","asosiy xususiyatlar","muhim jihatlar"];
+  const lc=t=>/^\p{Lu}\p{Lu}/u.test(t)?t:t.charAt(0).toLowerCase()+t.slice(1);
+  items.forEach((h,j)=>{const c=j===0?conn[0]:j===items.length-1&&items.length>2?conn[4]:conn[1+((j-1)%3)];
+    out.push(`${c}, «${lc(h)}» bo'yicha ${objs[j%objs.length]} ${verbs[j%verbs.length]}.`)});
+  out.push(`Taqdimotda keltirilgan ma'lumotlar ${topic}ning o'ziga xos xususiyatlari, rivojlanish bosqichlari va bugungi holati haqida yaxlit tasavvur hosil qilish imkonini beradi.`);
+  if(aspE==="education")out.push(`Ayniqsa, ${ent} tajribasini o'rganish O'zbekiston ta'lim tizimini yanada takomillashtirish uchun foydali xulosalar chiqarishga yordam beradi.`);
+  else if(aspE==="economy")out.push(`Bu tajribani o'rganish milliy iqtisodiyotimizni rivojlantirishda foydali g'oyalar berishi mumkin.`);
+  else if(aspE==="history")out.push(`Tarixiy tajribani o'rganish bugungi voqea-hodisalarni to'g'ri baholash va kelajakni oqilona rejalashtirishga yordam beradi.`);
+  else out.push(`Mazkur bilimlar nazariy tushunchalarni boyitish bilan birga, ularni amaliyotda qo'llash va boshqa tajribalar bilan qiyosiy tahlil qilish uchun ham muhim ahamiyatga ega.`);
+  out.push(`Umuman olganda, «${topic}» mavzusi dolzarb bo'lib, uni yanada chuqur o'rganish kelgusidagi ilmiy izlanishlar uchun keng imkoniyatlar ochadi.`);
+  return out}
+function conclusionOld(sections){const out=[];let len=0;const add=t=>{if(t.length>300||/…$|\.\.\.$/.test(t))return true;if(len+t.length>950||out.includes(t))return false;out.push(t);len+=t.length;return true};
   if(sections[0])sections[0].sents.slice(0,3).forEach(add);
   // har bir bo'limning birinchi gapi — umumlashtiruvchi fikr
   for(const sc of sections.slice(1)){if(out.length>=7)break;const t=sc.sents.find(x=>x.length<260);if(t)add(t)}
@@ -1114,7 +1148,32 @@ async function collectRefs(lang,mainTitle,sources){
   const site=sources.map(x=>x.lang&&x.lang!==lang?`${x.title} — ${({uz:"Vikipediya (ingliz tilida)",ru:"Википедия (на английском языке)",en:"Wikipedia"})[lang]||"Wikipedia"}. ${x.url}`:`${x.title} — ${WIKI_NAME[lang]||WIKI_NAME.uz}. ${x.url}`);
   // Vikipediya adabiyotlar ro'yxatiga yozilmaydi — faqat kitoblar va boshqa manbalar
   const WIKI=/wikipedia|vikipediya|википеди|wikimedia|wikidata/i;
-  return list.concat(web).filter(x=>!WIKI.test(x)).slice(0,14)}
+  // yangiliklar sayti maqolalari (Reuters, BBC…) — kitob emas, olinmaydi
+  const NEWS=/\b(reuters|bbc|abc news|cnn|guardian|new york times|nytimes|bloomberg|associated press|ap news|al jazeera|forbes|the times|washington post|news|yangiliklar|новости|риа|тасс|interfax)\b/i;
+  let res=list.concat(books.length>=5?[]:web).filter(x=>!WIKI.test(x)&&!NEWS.test(x));
+  // mavzuga yaqin kitoblar oldinga
+  try{const nm=[mainTitle];for(const to of ["en","ru"]){if(to!==lang){const t=await langTitle(lang,mainTitle,to);if(t)nm.push(t)}}
+    const stems=[...new Set(nm.flatMap(t=>t.toLowerCase().split(/[^\p{L}']+/u)).filter(w=>w.length>=4).map(w=>w.slice(0,Math.max(4,w.length-3))))];
+    const asp=REF_ASP[aspectEn(keyStems((document.getElementById("topic")||{}).value||mainTitle))]||null;
+    const sc=t=>{const x=t.split(" — ")[0].toLowerCase();return stems.filter(s=>x.includes(s)).length+(asp&&asp.test(x)?2:0)};
+    res=res.map((t,i)=>({t,i,s:sc(t)})).sort((a,b)=>b.s-a.s||a.i-b.i).map(o=>o.t)}catch(_){}
+  res=res.slice(0,10);
+  try{res=await refsToLang(res,lang)}catch(_){}
+  return res}
+const REF_ASP={education:/educat|school|teach|universit|pedagog|образован|школ|педагог|университет|ta'lim|maktab|oliy/,economy:/econom|industr|trade|экономик|промышлен|iqtisod/,
+  history:/histor|истори|tarix/,culture:/cultur|art|культур|madaniyat/,geography:/geograph|climat|географ|климат|geograf|iqlim/};
+// adabiyotlar tanlangan tilda: boshqa tildagi kitob nomi tarjima qilinadi, asl tili qavsda ko'rsatiladi
+const LANG_NAME={uz:{en:"ingliz tilida",ru:"rus tilida",de:"nemis tilida",fr:"fransuz tilida",no:"norveg tilida",nb:"norveg tilida",nn:"norveg tilida",sv:"shved tilida",da:"daniya tilida",fi:"fin tilida",es:"ispan tilida",it:"italyan tilida",ja:"yapon tilida",tr:"turk tilida",pl:"polyak tilida",nl:"golland tilida",x:"xorijiy tilda"},
+  ru:{en:"на английском языке",uz:"на узбекском языке",de:"на немецком языке",fr:"на французском языке",no:"на норвежском языке",nb:"на норвежском языке",sv:"на шведском языке",x:"на иностранном языке"},
+  en:{ru:"in Russian",uz:"in Uzbek",de:"in German",fr:"in French",no:"in Norwegian",nb:"in Norwegian",sv:"in Swedish",x:"in a foreign language"}};
+const CYR2LAT={а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"yo",ж:"j",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"x",ц:"ts",ч:"ch",ш:"sh",щ:"sh",ъ:"",ы:"i",ь:"",э:"e",ю:"yu",я:"ya",ў:"o'",қ:"q",ғ:"g'",ҳ:"h"};
+const cyrLat=t=>t.replace(/[а-яёўқғҳ]/gi,ch=>{const l=ch.toLowerCase(),r=CYR2LAT[l]??ch;return ch===l?r:r.charAt(0).toUpperCase()+r.slice(1)});
+async function trOne(t,to){const j=await getJSON(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to}&dt=t&q=${encodeURIComponent(t)}`);
+  return{text:(j[0]||[]).map(x=>x[0]).join("").trim(),src:String(j[2]||"x").split("-")[0]}}
+async function refsToLang(list,lang){const names=LANG_NAME[lang]||LANG_NAME.uz;
+  const out=await Promise.all(list.map(async t=>{if(refLang(t)===lang)return t;
+    try{const r=await trOne(t,lang);if(!r.text||r.src===lang)return t;let x=r.text;if(lang==="uz")x=cyrLat(x);return `${x.replace(/[.\s]+$/,"")}. (${names[r.src]||names.x})`}catch(_){return lang==="uz"?cyrLat(t):t}}));
+  return out}
 
 /* ---------- mavzuga mos maqolani topish ---------- */
 const SUF=["larining","laridagi","lardagi","laridan","larini","lariga","larida","lardan","larga","larni","lari","ning","dagi","dan","ni","ga","da","lar","si","i"];
@@ -1949,6 +2008,9 @@ const WINGS=n=>`<svg class="dr-no" viewBox="0 0 155 90"><g fill="#ffd84a" stroke
   <circle cx="77.5" cy="42" r="37" fill="#0d2569"/><circle cx="77.5" cy="42" r="31" fill="#ffd84a" stroke="#fff" stroke-width="2.5"/>
   <text x="77.5" y="54" text-anchor="middle" font-family="Oswald,Arial Narrow,sans-serif" font-weight="700" font-size="34" fill="#0d2569">${String(n).padStart(2,"0")}</text></svg>`;
 const CARDCOL=["#8a3a12","#1d4fc4","#2c7a2c","#a8201a","#12307a","#6a2c91"];
+// matn yonida bo'sh joy qolmasin: yon rasm bo'lmasa, mavzu rasmlaridan biri qo'yiladi
+function autoSide(s,i){if(s.noimg)return"";const own=new Set(imgs(s).concat((s.cards||[]).map(c=>c.img),[s.bg]));
+  const pool=(deck.pool||[]).filter(u=>u&&!own.has(u));if(!pool.length)return"";return pool[(i*5+2)%pool.length]}
 function cardList(s){const out=(s.cards||[]).filter(c=>c.img!==s.side).map(c=>({img:c.img,label:c.label}));const have=new Set(out.map(c=>c.img).concat([s.side,s.bg]));
   imgs(s).forEach(u=>{if(out.length<3&&!have.has(u)){out.push({img:u,label:""});have.add(u)}});return out}
 function darsCard(s,i,c,j){const lab=(s.caps&&s.caps[j]!=null)?s.caps[j]:c.label;const col=CARDCOL[(j+i)%CARDCOL.length];
@@ -1979,16 +2041,16 @@ function darsHTML0(s,i){
     const pa=s.bullets.length-(s.plain||0),lv=s.levels||[],nm=s.nums||[];let mi=0;
     const list=s.bullets.map((t,j)=>j<pa&&lv[j]===1?`<div class="dr-ri sub"><i>${esc(nm[j]||"")}.</i><span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></div>`:j>=pa?`<div class="dr-ri" style="color:#e3241b"><b style="visibility:hidden"></b><span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></div>`
       :`<div class="dr-ri"><b style="background:${CARDCOL[(mi++)%CARDCOL.length]}">${esc(nm[j]||String(j+1))}</b><span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></div>`).join("");
-    return `<div class="slide dr" style="${vars}">${bgL}<div class="dr-shade"></div><div class="dr-hd"><div class="dr-ic">${ICO.book}</div><span>${esc(deck.title||s.title)}</span></div>${WINGS(i+1)}
+    return `<div class="slide dr" style="${vars}">${bgL}<div class="dr-shade"></div><div class="dr-hd" style="${hdStyle(i)}"><div class="dr-ic">${ICO.book}</div><span>${twoToneHd(deck.title||s.title)}</span></div>${WINGS(i+1)}
       <div class="dr-main" style="bottom:${deck.author?"5.2cqw":"2.4cqw"}"><div class="dr-boxw" style="flex:none;width:${side?"60%":"100%"}"><div class="dr-bi">${ICO.book.replace('stroke="#1d4fc4"','stroke="#fff"')}</div><div class="dr-tab">Reja</div>
         <div class="dr-box fit"><div class="dr-rl">${list}</div></div></div>${side}</div>${auth}</div>`}
   const k=s.kind,auth=deck.author?`<div class="dr-auth"><span><i>Tayyorladi:</i> ${esc(deck.author)}</span></div>`:"";
-  const head=`<div class="dr-hd"><div class="dr-ic">${ICO.book}</div><span>${esc(deck.title||s.title)}</span></div>${WINGS(i+1)}`;
+  const head=`<div class="dr-hd" style="${hdStyle(i)}"><div class="dr-ic">${ICO.book}</div><span>${twoToneHd(deck.title||s.title)}</span></div>${WINGS(i+1)}`;
   const txt=k==="refs"?'<div style="padding:1.8cqw 0 0 2.6cqw">'+s.bullets.map((t,j)=>`<div style="text-indent:0;font-size:calc(2cqw*var(--k));color:#1a3ba0;margin-bottom:.8cqw;overflow-wrap:anywhere"><span style="color:#e3241b">${j+1+(s.start||0)}.</span> <span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></div>`).join("")+'</div>'
     :s.bullets.map((t,j)=>`<span contenteditable data-i="${i}" data-k="${j}">${colorize(t,j)}</span>`).join(" ");
   const box=(w)=>`<div class="dr-boxw" style="${w}"><div class="dr-bi">${k==="refs"?ICO.cap:iconFor(s.title,i)}</div><div class="dr-tab" contenteditable data-i="${i}" data-f="title">${esc(s.title)}</div><div class="dr-box fit"><div class="dr-txt">${txt}</div></div></div>`;
-  const cards=k?[]:cardList(s),n=cards.length,mb=deck.author?"5.2cqw":"2.4cqw";
-  const side=!k&&s.side?`<div class="dr-side"><div class="dr-card" style="height:100%"><img src="${esc(s.side)}" alt="" crossorigin="anonymous" onerror="this.parentNode.remove()"></div></div>`:"";
+  const sideU=!k?(s.side||autoSide(s,i)):"",cards=k?[]:cardList(Object.assign({},s,{side:sideU})),n=cards.length,mb=deck.author?"5.2cqw":"2.4cqw";
+  const side=sideU?`<div class="dr-side"><div class="dr-card" style="height:100%"><img src="${esc(sideU)}" alt="" crossorigin="anonymous" onerror="this.parentNode.remove()"></div></div>`:"";
   let main;
   if(n>=4&&i%3===1){const cols=n>4?3:2;
     main=`<div class="dr-main" style="bottom:${mb}">${box("flex:none;width:50%")}<div class="dr-cards" style="flex:1;grid-template-columns:repeat(${cols},1fr);grid-auto-rows:1fr">${cards.slice(0,6).map((c,j)=>darsCard(s,i,c,j)).join("")}</div></div>`}
@@ -2088,7 +2150,7 @@ document.addEventListener("click",e=>{const t=e.target.dataset;if(!t)return;
   else if(t.bg!==undefined){const s=deck.slides[+t.bg],p=deck.pool;const cur=s.bg||p[(+t.bg*5+3)%p.length];s.bg=p[(p.indexOf(cur)+1)%p.length];save();render()}
   if(t.pick!==undefined){window.scrollTo(0,0);generate(t.pick);return}
   if(t.del!==undefined){deck.slides.splice(+t.del,1);save();render()}
-  if(t.noimg!==undefined){const s=deck.slides[+t.noimg];s.imgs=[];s.img="";s.side="";save();render()}
+  if(t.noimg!==undefined){const s=deck.slides[+t.noimg];s.imgs=[];s.img="";s.side="";s.cards=[];s.noimg=true;save();render()}
   if(t.swap!==undefined){swapImage(+t.swap)}
   if(t.lay!==undefined){const s=deck.slides[+t.lay],dz=design(),cur=chooseLay(s,+t.lay,dz);s.lay=LAYS[(LAYS.indexOf(cur)+1)%LAYS.length];
     const need=s.lay==="C"?3:s.lay==="A"&&!imgs(s).length?0:1;if(imgs(s).length<need&&(deck.pool||[]).length){const p=deck.pool;s.imgs=[...imgs(s)];while(s.imgs.length<need)s.imgs.push(p[(s.imgs.length*7+ +t.lay)%p.length])}
