@@ -258,6 +258,8 @@ button.dl-a{width:100%;border:0;cursor:pointer}
 .pay-tg{width:100%;max-width:420px;display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;border-radius:14px;padding:13px;
   background:linear-gradient(180deg,#2aabee,#1e8fd0);color:#fff;font:700 15px/1.2 "Montserrat",sans-serif;box-shadow:0 0 18px rgba(42,171,238,.5)}
 .pay-tg svg{width:26px;height:26px;flex:none}
+button.pay-tg{border:0;cursor:pointer;margin:0 auto}
+.lock .pay-tg{max-width:none;margin-top:10px;font-size:16px}
 
 
 /* ===== Kirish kodi ===== */
@@ -449,11 +451,11 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
       <div class="pay-row"><span class="pay-name">KHUSAN SAFARBOYEV</span><span class="pay-uz">UZCARD</span></div>
     </div>
     <button type="button" class="pay-copy" id="payCopy">Karta raqamini nusxalash</button>
-    <div class="pay-note">Dasturchiga tashlagan pulingizning <b>skrinshotini</b> tashlash uchun Telegram akkaunti:
-      <a class="tg-link pay-user" href="https://t.me/Safarboyev_Husanjon" target="_blank" rel="noopener">@Safarboyev_Husanjon</a></div>
-    <a class="pay-tg tg-link" href="https://t.me/Safarboyev_Husanjon" target="_blank" rel="noopener">
+    <div class="pay-note">Pul o'tkazgach, <b>chek skrinshotini botimizga</b> yuboring — to'lov tasdiqlanishi bilan <b>kirish kodi bot orqali avtomatik keladi</b>.</div>
+    <button type="button" class="pay-tg" id="payBot">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#fff"/><path d="M5.4 11.7 17 7.2c.5-.2 1 .1.8.9l-2 9.3c-.1.6-.5.8-1 .5l-3-2.2-1.5 1.4c-.2.2-.3.3-.6.3l.2-3.1 5.6-5c.2-.2 0-.3-.4-.1l-6.9 4.3-3-.9c-.6-.2-.6-.6.2-.9Z" fill="#229ed9"/></svg>
-      Skrinshotni Telegram'dan yuborish uchun bosing</a>
+      🤖 Chekni botga yuborish</button>
+    <div class="pay-note" style="margin-top:10px">Savollar uchun: <a class="tg-link" href="https://t.me/Safarboyev_Husanjon" target="_blank" rel="noopener">@Safarboyev_Husanjon</a></div>
   </section>
 
   <section class="lock" id="lockBox" aria-live="polite"></section>
@@ -1489,14 +1491,15 @@ function renderLock(){
   if(isUnlim()){box.className="lock open";box.innerHTML=`<h2>✅ Cheksiz kirish ochiq</h2><div class="ok">Promo kod faollashtirilgan: taqdimotlarni cheksiz yaratishingiz mumkin.</div>`;updateGo();return}
   if(hasCredit()){box.className="lock open";box.innerHTML=`<h2>✅ Kirish ochiq</h2><div class="ok">Kod qabul qilindi. Endi 1 ta taqdimot yaratishingiz mumkin.</div>`;updateGo();return}
   const req=getReq();box.className="lock";box.innerHTML=`<h2>🔒 Slayd yaratish yopiq</h2>
-    <p>1) Kartaga 8 000 so'm o'tkazing. 2) Chek skrinshotini va quyidagi <b>so'rov kodini</b> Dasturchiga Telegram'dan yuboring. 3) Dasturchi bergan <b>kirish kodini</b> kiriting.</p>
+    <p>1) Kartaga 8 000 so'm o'tkazing. 2) <b>«🤖 Chekni botga yuborish»</b>ni bosing va chek skrinshotini botga yuboring. 3) To'lov tasdiqlangach, bot <b>kirish kodini</b> o'zi yuboradi.</p>
     <div class="req"><span>So'rov kodingiz:</span><code id="reqCode">${req}</code><button type="button" id="reqCopy">Nusxa olish</button></div>
-    <div class="codebox"><span class="lbl">🎟 Promo kod (foydalanuvchilar uchun)</span><small>Promo kod yoki to'lovdan keyin dasturchi bergan kirish kodini yozing.</small>
+    <button type="button" class="pay-tg" id="lockBot">🤖 Chekni botga yuborish</button>
+    <div class="codebox"><span class="lbl">🎟 Promo kod (foydalanuvchilar uchun)</span><small>Promo kod yoki to'lovdan keyin bot yuborgan kirish kodini yozing.</small>
       <div class="row2"><input id="accIn" type="text" placeholder="Promo kod" autocomplete="off" aria-label="Promo kod"><button type="button" class="primary" id="accGo" style="padding:11px 18px">Ochish</button></div></div>
     <div class="codebox"><span class="lbl">👨‍💻 Dasturchi uchun kirish kodi</span>
       <div class="row2"><input id="devIn" type="password" placeholder="Dasturchi kodi" autocomplete="off" aria-label="Dasturchi uchun kirish kodi"><button type="button" id="devGo" style="padding:11px 18px">Kirish</button></div></div>
     <div class="bad" id="accErr"></div>`;
-  $("#reqCopy").onclick=()=>copyPlain(req,$("#reqCopy"));
+  $("#reqCopy").onclick=()=>copyPlain(req,$("#reqCopy"));{const lb=$("#lockBot");if(lb)lb.onclick=()=>openBot("pay_"+normCode(req))}
   const tryDev=()=>{const v=$("#devIn").value.trim();if(!v)return;
     if(v.toLowerCase()===DEV_CODE){lsSet("tp_dev","1");renderLock();setStatus("Dasturchi rejimi yoqildi.");return}
     $("#accErr").textContent="Dasturchi kodi noto'g'ri."};
@@ -2863,6 +2866,28 @@ window.addEventListener("load",()=>{setTimeout(()=>{
   const box=document.getElementById("uniPaste");if(box)box.style.display="none";
   const lb=box&&box.previousElementSibling;if(lb&&lb.classList.contains("lbl"))lb.textContent="Google'dan olingan rasmni qo'yish";
 },300)});
+</script>
+
+<script>
+// to'lov: botni so'rov kodi bilan ochish (t.me/Pro_slidesgo_bot?start=pay_XXXXXXXX)
+function openBot(start){const bot="Pro_slidesgo_bot",web=`https://t.me/${bot}?start=${encodeURIComponent(start)}`;
+  if(window.IN_TG&&IN_TG()&&window.tgOpen){tgOpen(web);return}
+  let left=false;const onHide=()=>{left=true};document.addEventListener("visibilitychange",onHide,{once:true});window.addEventListener("blur",onHide,{once:true});
+  try{location.href=`tg://resolve?domain=${bot}&start=${encodeURIComponent(start)}`}catch(_){}
+  setTimeout(()=>{if(left||document.hidden)return;const w=window.open(web,"_blank");if(!w)location.href=web},1200)}
+{const pb=document.getElementById("payBot");if(pb)pb.onclick=()=>openBot("pay_"+normCode(getReq()))}
+// bot yuborgan «⚡ Kodni qo'yib ochish» tugmasi: ?req=…&kod=… — kirish o'zi ochiladi
+window.addEventListener("load",()=>{setTimeout(()=>{try{
+  const q=new URLSearchParams(location.search),kod=normCode(q.get("kod")),rq=normCode(q.get("req"));if(!kod)return;
+  let used=[];try{used=JSON.parse(lsGet("tp_used_kod")||"[]")}catch(_){}
+  if(isDev()||isUnlim()||hasCredit()){return}
+  if(used.includes(kod)){setStatus("Bu kirish kodi allaqachon ishlatilgan. Yangi taqdimot uchun yana to'lov qiling.",true);return}
+  const okLocal=kod===accessFor(getReq()),okUrl=rq.length===8&&kod===accessFor(rq);
+  if(okLocal||okUrl){lsSet("tp_credit","1");lsSet("tp_used_kod",JSON.stringify(used.concat([kod]).slice(-50)));renderLock();
+    setStatus("✅ To'lov tasdiqlandi — kirish ochildi! Mavzuni yozib «Slayd yaratish»ni bosing.");
+    const t=document.getElementById("topic");if(t)t.scrollIntoView({behavior:"smooth",block:"center"})}
+  else{const i=document.getElementById("accIn");if(i)i.value=kod;setStatus("Kod bu qurilmadagi so'rov kodiga mos kelmadi. Kodni so'rov kodini olgan joyingizda kiriting.",true)}
+}catch(_){}},500)});
 </script>
 </body>
 </html>
