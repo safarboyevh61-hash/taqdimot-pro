@@ -1050,6 +1050,7 @@ async function deepenPlan(items,secs,ctx){
           sc.sents.forEach(x=>{if(it.sents.length>=14||used.has(key(x)))return;if(headOk||hasAny(x,terms)){used.add(key(x));it.sents.push(x);got++}})});
         if(got&&ctx.sources&&!ctx.sources.some(z=>z.title===pg.title))ctx.sources.push({title:pg.title,url:wikiUrl(ctx.lang,pg.title)})}}catch(e){if(e.message==="net"||e.message==="csp")throw e}}
   return items}
+function termHit(s,t){let x=norm(s);if(t.startsWith("tashk"))x=x.replace(/(ni|ga|dan) tashkil (etdi|etadi|etib|etgan|etmoqda|qiladi|qildi|qilib|qilgan)/g,"");return x.includes(t)}
 function parsePlan(text){const items=[];
   String(text||"").split(/\n/).forEach(raw=>{if(!raw.trim())return;
     const sub=/^\s{2,}\S/.test(raw)||/^\s*[-–—•*·]\s*/.test(raw)||/^\s*\d+\.\d+/.test(raw);
@@ -1068,7 +1069,7 @@ async function fillPlan(items,secs,ctx){
   const grab=(title,max,wide,strict)=>{const keys=distinct(title),terms=termsOf(title,wide);if(!terms.length)return[];
     const out=[];
     secs.forEach(sc=>{if(relevance(sc.head.split(": ").pop(),keys)>0)sc.sents.forEach(x=>{if(out.length<max&&!used.has(key(x))){used.add(key(x));out.push(x)}})});
-    const scored=flat.filter(o=>!used.has(key(o.s))&&(o.src===ctx.main||hasAny(o.s,topicT)&&!foreignOf(o.s,ctx.topic))).map((o,i)=>({o,i,h:terms.filter(t=>norm(o.s).includes(t)).length})).filter(x=>x.h>0)
+    const scored=flat.filter(o=>!used.has(key(o.s))&&(o.src===ctx.main||hasAny(o.s,topicT)&&!foreignOf(o.s,ctx.topic))).map((o,i)=>({o,i,h:terms.filter(t=>termHit(o.s,t)).length})).filter(x=>x.h>0)
       .sort((a,b)=>b.h-a.h||a.i-b.i).slice(0,Math.max(0,max-out.length)).sort((a,b)=>a.i-b.i);
     scored.forEach(x=>{used.add(key(x.o.s));out.push(x.o.s)});
     if(!out.length&&!wide&&!strict)return grab(title,max,true); // aniq so'z topilmasa — ma'nodoshlar bilan
@@ -1354,25 +1355,38 @@ function relevantCommons(q,list){const name=u=>{try{return decodeURIComponent(u.
   const asp=Object.keys(EN_ASP).find(k=>ws.some(w=>w.startsWith(k.slice(0,6))));
   const HOMO=/(^|[^a-z])(dog|dogs|puppy|puppies|hund|hunde|welpe|chien|perro|kitten|breed|kennel|eurasier|album|cover|poster|jersey|logo|fc)(?=[^a-z]|$)/,ql=q.toLowerCase();
   return list.filter(u=>{const n=name(u);if(HOMO.test(n)&&!HOMO.test(ql))return false;if(asp)return EN_ASP[asp].test(n);return ws.some(w=>n.includes(w.slice(0,Math.max(4,w.length-2))))})}
+// rasm nomi mavzuga qanchalik mos: diagramma, genetika jadvali, bayroq kabi rasmlar chetga suriladi
+const IMG_BAD=/(chart|graph|diagram|admixture|genetic|haplo|dna|plot|table|distribution|scheme|schema|coat of arms|flag|logo|seal|signature|stamp|icon|symbol|map of|karta|карта|схема|диаграм|график|gene |allele|cladogram|phylogen|skull|bone|corpse|dead body|skeleton)/;
 async function collectImages(lang,main,extra,n,seeds){
-  const want=Math.max(n*2,16);let pool=[];const add=a=>{pool=[...new Set(pool.concat(a))]};
-  for(const sd of seeds||[]){setStatus("Mavzuga oid rasmlar yig'ilmoqda…");add(await pageImages(sd.lang,sd.title))}
-  for(const p of extra.slice(0,3))add(await pageImages(lang,p.title));
-  if(main.original&&main.original.source&&/\.jpe?g$/i.test(main.original.source))add([main.original.source]);
-  add(await pageImages(lang,main.title));
+  const want=Math.max(n*2,16);let pool=[];const add=a=>{pool=[...new Set(pool.concat(a))]};const mainSet=new Set();
+  for(const sd of seeds||[]){setStatus("Mavzuga oid rasmlar yig'ilmoqda…");const a=await pageImages(sd.lang,sd.title);a.forEach(u=>mainSet.add(u));add(a)}
+  // 1) asosiy maqola (o'zbekcha, inglizcha, ruscha nusxalari) — eng mos rasmlar
+  if(main.original&&main.original.source&&/\.jpe?g$/i.test(main.original.source)){mainSet.add(main.original.source);add([main.original.source])}
+  {const a=await pageImages(lang,main.title);a.forEach(u=>mainSet.add(u));add(a)}
   const en=lang==="en"?main.title:await langTitle(lang,main.title,"en");
-  if(pool.length<want&&en&&lang!=="en"){setStatus("Rasmlar yig'ilmoqda (inglizcha maqoladan)…");add(await pageImages("en",en))}
-  if(pool.length<want&&lang!=="ru"){const ru=await langTitle(lang,main.title,"ru");if(ru){setStatus("Rasmlar yig'ilmoqda (ruscha maqoladan)…");add(await pageImages("ru",ru))}}
-  if(pool.length<want){setStatus("Rasmlar yig'ilmoqda (Wikimedia Commons)…");add(relevantCommons(en||main.title,await commonsImages(en||main.title)))}
+  const ru=lang==="ru"?main.title:await langTitle(lang,main.title,"ru");
+  if(en&&lang!=="en"){setStatus("Rasmlar yig'ilmoqda (inglizcha maqoladan)…");add(await pageImages("en",en))}
+  if(pool.length<want&&ru&&lang!=="ru"){setStatus("Rasmlar yig'ilmoqda (ruscha maqoladan)…");add(await pageImages("ru",ru))}
+  // 2) Wikimedia Commons: mavzu nomi bilan qidiruv (har doim — mos fotosuratlar shu yerda ko'p)
+  setStatus("Mavzuga mos rasmlar qidirilmoqda (Wikimedia Commons)…");add(relevantCommons(en||main.title,await commonsImages(en||main.title)));
+  // 3) yaqin maqolalar — faqat rasm kam bo'lsa
   for(const p of extra.slice(0,3)){if(pool.length>=want)break;add(await pageImages(lang,p.title))}
-  return pool}
+  // saralash: nomida mavzu so'zlari bor rasmlar oldinga; diagramma va boshqa mavzudagi rasmlar olinmaydi
+  const topicTxt=(document.getElementById("topic")||{}).value||main.title;
+  const kwOf=t=>String(t||"").toLowerCase().split(/[^\p{L}']+/u).filter(w=>w.length>=4&&!["with","from","the","and","uchun","bilan","haqida"].includes(w)&&!STOP.has(w)).map(w=>w.slice(0,Math.max(4,w.length-2)));
+  const kw=[...new Set([en,ru,main.title,topicTxt].flatMap(kwOf))];
+  const aspRe=EN_ASP[aspectEn(keyStems(topicTxt))]||null;
+  const nm=u=>{try{return decodeURIComponent(u.split("/").pop()).toLowerCase().replace(/_/g," ")}catch(_){return u.toLowerCase()}};
+  const score=u=>{const x=nm(u);let s=kw.filter(k=>x.includes(k)).length*2+(aspRe&&aspRe.test(x)?1:0)+(mainSet.has(u)?1:0);if(IMG_BAD.test(x))s-=4;return s};
+  const sc=pool.map((u,i)=>({u,i,s:score(u)})).filter(o=>o.s>=0),good=sc.filter(o=>o.s>0);
+  return (good.length>=Math.min(4,want)?good:sc).sort((a,b)=>b.s-a.s||a.i-b.i).map(o=>o.u)}
 
 
 /* ---------- aniq mavzu: "AQSh ta'lim tizimi" kabi — asosiy nom + jihat ---------- */
 // jihat so'zlarining ma'nodoshlari (gaplarni saralash uchun)
 const ASP=[[/^ta'lim|^maktab|^o'quv|^universitet|^oliy/,["ta'lim","maktab","universitet","kollej","o'quv","talaba","o'quvchi","oliy o'quv","akademiy","litsey","o'qituvchi"],"education"],
   [/^iqtisod|^sanoat|^savdo/,["iqtisod","sanoat","savdo","eksport","import","yaim","ishlab chiqar","qishloq xo'jalig"],"economy"],
-  [/^aholi|^demograf|^millat|^xalq/,["aholi","millat","demograf","xalq","etnik","urbaniz"],"demographics"],
+  [/^ahol|^demograf|^millat|^xalq/,["aholi","millat","demograf","xalq","etnik","urbaniz"],"demographics"],
   [/^tarix/,["tarix","asr","davr","sulola","qadimgi","mustaqillik"],"history"],
   [/^madaniyat|^san'at|^adabiyot/,["madaniyat","san'at","adabiyot","teatr","musiqa","me'morchilik","kino"],"culture"],
   [/^sport/,["sport","olimpiya","futbol","chempionat"],"sport"],
@@ -2205,9 +2219,12 @@ async function wikiThumbs(lang,titles){const map={};for(let i=0;i<titles.length;
     part.forEach(t=>{let f=t;for(let k=0;k<3&&fwd[f];k++)f=fwd[f];if(f in byT)map[t]={title:f,img:byT[f]}})}catch(_){}}return map}
 async function enrichCards(slides,lang,topic){
   const tk=keyStems(topic);
+  // gap o'rtasida ham bosh harf bilan yozilgan so'zlar — haqiqiy nomlar (Osiyo, Yevropa…)
+  const midCap=new Set();slides.forEach(s=>{if(s.type!=="content"||s.kind)return;entityRuns((s.bullets||[]).join(" ")).forEach(r=>{if(!r.single)midCap.add(stem(r.text.split(" ")[0]))})});
   const per=slides.map(s=>{if(s.type!=="content"||s.kind)return[];const seen=new Set(),out=[];
     entityRuns(s.bullets.join(" ")).forEach(r=>{const t=entTitle(r.text);const key=norm(t);if(t.length<3||seen.has(key))return;
       if(tk.length&&relevance(t,tk)>=tk.length&&t.split(" ").length<=tk.length+1)return; // mavzuning o'zi har slaydda takrorlanmasin
+      if(r.single&&!midCap.has(stem(r.text.split(" ")[0])))return;
       seen.add(key);out.push({t,single:r.single})});return out.slice(0,7)});
   const all=[...new Set(per.flat().map(e=>e.t))];if(!all.length)return;
   setStatus(`Kartochkalar uchun ${all.length} ta nom tekshirilmoqda…`);
