@@ -1055,10 +1055,12 @@ function parsePlan(text){const items=[];
     const sub=/^\s{2,}\S/.test(raw)||/^\s*[-–—•*·]\s*/.test(raw)||/^\s*\d+\.\d+/.test(raw);
     const t=raw.replace(/^\s*([-–—•*·]|\d+(\.\d+)*[.)]?)\s*/,"").trim();if(!t)return;
     if(sub&&items.length)items[items.length-1].subs.push({title:t,sents:[]});else items.push({title:t,sents:[],subs:[]})});
-  return items}
+  return items.filter(it=>!PLAN_TAIL.test(norm(it.title).replace(/[.:;!]+$/,"").trim()))}
+// ilova o'zi qo'shadigan bandlar (rejada yozilsa ham alohida slayd bo'lmaydi)
+const PLAN_TAIL=/^(xulosa(lar)?|xulosa va takliflar|umumiy xulosa|foydalanilgan adabiyotlar( ro'yxati)?|adabiyotlar( ro'yxati)?|foydalanilgan (manba|adabiyot)lar va (manba|adabiyot)lar|foydalanilgan manbalar|manbalar|заключение|выводы?|литература|список литературы|список использованной литературы|conclusions?|references|bibliography)$/i;
 // qo'lda yozilgan reja bandlari uchun ma'lumot: avval to'plangan manbalardan, topilmasa — alohida qidiruv
 async function fillPlan(items,secs,ctx){
-  const used=new Set(),flat=[];secs.forEach(sc=>sc.sents.forEach(x=>flat.push({head:sc.head,s:x})));
+  const used=new Set(),flat=[];secs.forEach(sc=>sc.sents.forEach(x=>flat.push({head:sc.head,s:x,src:sc.src})));
   const key=x=>norm(x).slice(0,90),topicK=keyStems(ctx.topic),topicT=aspectTerms(topicK);
   // band nomidagi mavzudan farqli (ajratib turuvchi) so'zlar: "Majburiy ta'lim" → "majburiy"
   const distinct=title=>{const keys=keyStems(title).filter(k=>!GENERIC.test(k));const same=(a,b)=>a.slice(0,4)===b.slice(0,4)&&(a.startsWith(b)||b.startsWith(a));const d=keys.filter(k=>!topicK.some(t=>same(t,k)));return d.length?d:keys.length?keys:keyStems(title)};
@@ -1066,7 +1068,7 @@ async function fillPlan(items,secs,ctx){
   const grab=(title,max,wide,strict)=>{const keys=distinct(title),terms=termsOf(title,wide);if(!terms.length)return[];
     const out=[];
     secs.forEach(sc=>{if(relevance(sc.head.split(": ").pop(),keys)>0)sc.sents.forEach(x=>{if(out.length<max&&!used.has(key(x))){used.add(key(x));out.push(x)}})});
-    const scored=flat.filter(o=>!used.has(key(o.s))).map((o,i)=>({o,i,h:terms.filter(t=>norm(o.s).includes(t)).length})).filter(x=>x.h>0)
+    const scored=flat.filter(o=>!used.has(key(o.s))&&(o.src===ctx.main||hasAny(o.s,topicT)&&!foreignOf(o.s,ctx.topic))).map((o,i)=>({o,i,h:terms.filter(t=>norm(o.s).includes(t)).length})).filter(x=>x.h>0)
       .sort((a,b)=>b.h-a.h||a.i-b.i).slice(0,Math.max(0,max-out.length)).sort((a,b)=>a.i-b.i);
     scored.forEach(x=>{used.add(key(x.o.s));out.push(x.o.s)});
     if(!out.length&&!wide&&!strict)return grab(title,max,true); // aniq so'z topilmasa — ma'nodoshlar bilan
@@ -1077,9 +1079,10 @@ async function fillPlan(items,secs,ctx){
     try{setStatus(`«${title}» bandi bo'yicha inglizcha manbadan qidirilmoqda…`);
       const [q,tq]=await translateList([ctx.topic+" "+title,title],ctx.lang,"en");
       const sr=await api("en",{action:"query",list:"search",srsearch:q,srlimit:4});const tk=keyStems(tq).filter(k=>!GENERIC.test(k)).map(pre4);
-      for(const h of ((sr.query&&sr.query.search)||[]).slice(0,2)){if(out.length>=max)break;const pg=await article("en",h.title),eng=[];
+      const hitsEn=[...new Set([ctx.enMain].concat(((sr.query&&sr.query.search)||[]).map(h=>h.title)).filter(Boolean))].slice(0,3).map(t=>({title:t}));
+      for(const h of hitsEn){if(out.length>=max)break;const pg=await article("en",h.title),eng=[];
         parseSections(pg.extract||"",pg.title,pg.title).forEach(sc=>{const ho=hasAny(sc.head,tk);sc.sents.forEach(x=>{if(eng.length<max-out.length&&(ho||hasAny(x,tk)))eng.push(x)})});
-        if(eng.length){setStatus(`«${title}» bandi tarjima qilinmoqda…`);const tr=await translateList(eng,"en",ctx.lang);tr.forEach(x=>{if(x&&x.length>20&&!used.has(key(x))){used.add(key(x));out.push(x)}});
+        if(eng.length){setStatus(`«${title}» bandi tarjima qilinmoqda…`);const tr=await translateList(eng,"en",ctx.lang);tr.forEach(x=>{if(x&&x.length>20&&!used.has(key(x))&&!foreignOf(x,ctx.topic)){used.add(key(x));out.push(x)}});
           if(ctx.sources&&!ctx.sources.some(z=>z.title===pg.title))ctx.sources.push({title:pg.title,url:wikiUrl("en",pg.title),lang:"en"})}}}catch(_){}
     return out};
   const search=async(title,max)=>{if(ctx.offline)return[];const terms=termsOf(title),out=[];
@@ -1092,9 +1095,14 @@ async function fillPlan(items,secs,ctx){
             if((headOk&&(tOn||hasAny(x,topicT)))||(hasAny(x,terms)&&(tOn||hasAny(x,topicT)))){used.add(key(x));out.push(x)}})});
         if(out.length&&ctx.sources&&!ctx.sources.some(z=>z.title===pg.title))ctx.sources.push({title:pg.title,url:wikiUrl(ctx.lang,pg.title)})}}catch(e){if(e.message==="net"||e.message==="csp")throw e}
     return out};
+  // «… tushunchasi», «Kirish», «Umumiy ma'lumot» — asosiy maqolaning boshidagi ta'rif gaplari
+  const leadSec=secs.find(sc=>sc.src===ctx.main)||secs[0];
+  const isIntro=t=>/^(kirish|umumiy ma'lumot|umumiy tushuncha)$|tushunchas?i?$|ta'rifi$|mohiyati$|tushunchasi va /.test(norm(t).replace(/[.:;!]+$/,"").trim());
   // 1-bosqich: har bir bandga nomi mos bo'lim oldindan beriladi (boshqa bandlar uni olib ketmasin)
   const slotsAll=[];items.forEach(it=>{if(it.subs.length)it.subs.forEach(sb=>slotsAll.push(sb.title));else slotsAll.push(it.title)});
-  const pre={};slotsAll.forEach(t=>{const ks=distinct(t),got=[];secs.forEach(sc=>{if(relevance(sc.head.split(": ").pop(),ks)>0)sc.sents.forEach(x=>{if(!used.has(key(x))){used.add(key(x));got.push(x)}})});pre[t]=got});
+  const pre={};
+  slotsAll.filter(isIntro).forEach(t=>{if(!leadSec)return;const got=leadSec.sents.filter(s=>!used.has(key(s)));got.forEach(s=>used.add(key(s)));pre[t]=got});
+  slotsAll.filter(t=>!isIntro(t)).forEach(t=>{const ks=distinct(t),got=[];secs.forEach(sc=>{if(sc!==leadSec&&!INTRO.test(norm(sc.head))&&relevance(sc.head.split(": ").pop(),ks)>0)sc.sents.forEach(x=>{if(!used.has(key(x))){used.add(key(x));got.push(x)}})});pre[t]=got});
   const fill=async(title,max)=>{let x=(pre[title]||[]).slice(0,max);if(x.length<max)x=x.concat(grab(title,max-x.length));if(x.length<max)x=x.concat(await search(title,max-x.length));if(x.length<Math.min(6,max))x=x.concat(await searchEn(title,max-x.length));return x};
   for(const it of items){
     if(it.subs.length){for(const sb of it.subs)sb.sents=await fill(sb.title,per);it.sents=grab(it.title,3,false,true)}
@@ -1139,11 +1147,13 @@ function conclusion(sections,topic){
   const ent=(ai>0?tw.slice(0,ai).join(" "):tw[0]||topic).replace(/(ning|dagi|da)$/i,""),aspK=ai>=0?keyStems(tw.slice(ai).join(" ")):[],aspE=aspectEn(keyStems(topic));
   const entT=keyStems(ent).map(pre4),aspT=aspK.length?aspectTerms(aspK):[];
   const allS=sections.flatMap(s=>s.sents||[]),lowAll=" "+allS.join(" ")+" ";
+  const coreT=[...new Set(keyStems(topic).filter(k=>k.length>=4&&!GENERIC.test(k)&&!STOP.has(k)).map(pre4))];
   const seen=new Set(),out=[];
   // har bo'limdan eng ma'lumotli gap (bo'lim boshidagi 2 gap emas)
-  const pick=sc=>{const ss=(sc.sents||[]),from=ss.length>4?2:ss.length>2?1:0;
+  const pick=sc=>{const ss=(sc.sents||[]),from=ss.length>4?2:ss.length>=2?1:0;
     return ss.slice(from).filter(x=>x.length>=50&&x.length<=320&&!/…|\.\.\./.test(x)&&!seen.has(x)&&(!entT.length||hasAny(x,entT)||hasAny(x,aspT)))
-      .map(x=>({x,v:(/\d/.test(x)?2:0)+(hasAny(x,entT)?2:0)+(hasAny(x,aspT)?1.5:0)+Math.min(x.length,220)/220}))
+      .map(x=>({x,v:(/\d/.test(x)?1:0)+(hasAny(x,entT)?2:0)+(hasAny(x,aspT)?1.5:0)+coreT.filter(c=>norm(x).includes(c)).length*1.5+(/o'zbekiston/.test(norm(x))?1:0)-(foreignOf(x,topic)?4:0)+Math.min(x.length,220)/220}))
+      .filter(o=>o.v>0&&!foreignOf(o.x,topic))
       .sort((a,b)=>b.v-a.v)[0]};
   const short=s=>{if(s.length<=210)return s;const m=s.slice(90).search(/;\s|,\s(?:biroq|ammo|lekin|chunki|shuningdek|bu esa)\s/);
     return m>=0?s.slice(0,90+m).replace(/[,;\s]+$/,"")+".":s};
@@ -1239,11 +1249,12 @@ async function collectRefs(lang,mainTitle,sources){
     const stems=[...new Set(nm.flatMap(t=>t.toLowerCase().split(/[^\p{L}']+/u)).filter(w=>w.length>=4).map(w=>w.slice(0,Math.max(4,w.length-3))))];
     const asp=REF_ASP[aspectEn(keyStems((document.getElementById("topic")||{}).value||mainTitle))]||null;
     const sc=t=>{const x=t.split(" — ")[0].toLowerCase();return stems.filter(s=>x.includes(s)).length+(asp&&asp.test(x)?2:0)};
-    res=res.map((t,i)=>({t,i,s:sc(t)})).sort((a,b)=>b.s-a.s||a.i-b.i).map(o=>o.t)}catch(_){}
+    const scd=res.map((t,i)=>({t,i,s:sc(t)}));const good=scd.filter(o=>o.s>0);
+    res=(good.length>=5?good:scd).sort((a,b)=>b.s-a.s||a.i-b.i).map(o=>o.t)}catch(_){}
   res=res.slice(0,10);
   try{res=await refsToLang(res,lang)}catch(_){}
   return res}
-const REF_ASP={education:/educat|school|teach|universit|pedagog|образован|школ|педагог|университет|ta'lim|maktab|oliy/,economy:/econom|industr|trade|экономик|промышлен|iqtisod/,
+const REF_ASP={demographics:/demograf|демограф|населен|перепис|population|census|popul|aholi|ro'yxat|migrat|миграц/,education:/educat|school|teach|universit|pedagog|образован|школ|педагог|университет|ta'lim|maktab|oliy/,economy:/econom|industr|trade|экономик|промышлен|iqtisod/,
   history:/histor|истори|tarix/,culture:/cultur|art|культур|madaniyat/,geography:/geograph|climat|географ|климат|geograf|iqlim/};
 // adabiyotlar tanlangan tilda: boshqa tildagi kitob nomi tarjima qilinadi, asl tili qavsda ko'rsatiladi
 const LANG_NAME={uz:{en:"ingliz tilida",ru:"rus tilida",de:"nemis tilida",fr:"fransuz tilida",no:"norveg tilida",nb:"norveg tilida",nn:"norveg tilida",sv:"shved tilida",da:"daniya tilida",fi:"fin tilida",es:"ispan tilida",it:"italyan tilida",ja:"yapon tilida",tr:"turk tilida",pl:"polyak tilida",nl:"golland tilida",x:"xorijiy tilda"},
@@ -1260,7 +1271,7 @@ async function refsToLang(list,lang){const names=LANG_NAME[lang]||LANG_NAME.uz;
 
 /* ---------- mavzuga mos maqolani topish ---------- */
 const SUF=["larining","laridagi","lardagi","laridan","larini","lariga","larida","lardan","larga","larni","lari","ning","dagi","dan","ni","ga","da","lar","si","i"];
-const STOP=new Set(["va","ham","bilan","uchun","haqida","roli","rol","ahamiyati","o'rni","orni","mavzu","the","of","and","in","role","и","в","на","роль"]);
+const STOP=new Set(["va","ham","bilan","uchun","haqida","roli","rol","ahamiyati","o'rni","orni","mavzu","the","of","and","in","role","и","в","на","роль","uni","uning","unga","undan","bu","ushbu","shu","ular","ularning","olish","etish","qilish","berish"]);
 const norm=w=>w.toLowerCase().replace(/[‘’ʻʼ`]/g,"'");
 function stem(w){w=norm(w);for(const x of SUF)if(w.length-x.length>=4&&w.endsWith(x))return w.slice(0,-x.length);return w}
 function keyStems(t){return t.split(/[\s,.;:—–()]+/).filter(Boolean).map(stem).filter(w=>w.length>=3&&!STOP.has(w))}
@@ -1373,7 +1384,14 @@ const ASP=[[/^ta'lim|^maktab|^o'quv|^universitet|^oliy/,["ta'lim","maktab","univ
   [/^turizm/,["turizm","sayyoh","mehmonxona"],"tourism"],
   [/^energ/,["energ","elektr","neft","gaz","ko'mir"],"energy"],
   [/^armiya|^qurolli/,["armiya","qurolli kuch","harbiy"],"military"]];
-const GENERIC=/^(tizim|soha|masala|xususiyat|ahamiyat|holat|tuzilish|asos|tur|muammo|rivojlan|o'rn|rol)/;
+const GENERIC=/^(tizim|soha|masala|xususiyat|ahamiyat|holat|tuzilish|asos|tur|muammo|rivojlan|o'rn|rol|jarayon|ma'lumot)/;
+// boshqa davlatga xos gap (mavzuda o'sha davlat bo'lmasa): xulosa va inglizcha qo'shimchada chetga suriladi
+const FOREIGN=/(aqsh|qo'shma shtatlar|amerika|kanada|avstraliya|buyuk britaniya|angliya|germaniya|fransiya|rossiya|xitoy|yaponiya|hindiston|braziliya|meksika|yaqin sharq|shimoliy afrika|sssr|sovet ittifoqi|yevropa ittifoqi)/;
+// mavzu qit'a, dunyo, dengiz kabi joy haqida bo'lsa — davlat nomlari tabiiy, chetga surilmaydi
+const PLACE=/(yevrosiyo|osiyo|afrika|yevropa|amerika|avstraliya|antarktida|okeaniya|materik|qit'a|davlat|mamlakat|dunyo|jahon|xalqaro|dengiz|okean|daryo|ko'l|tog'|cho'l|orol|ko'rfaz|bo'g'oz|mintaqa|region)/;
+function foreignOf(x,topic){if(((document.getElementById("lang")||{}).value||"uz")!=="uz")return false;const t=norm(topic||"");
+  const m=norm(x).match(FOREIGN);if(!m)return false;if(t.includes(m[1].slice(0,5)))return false;
+  if(!FOREIGN.test(t)&&PLACE.test(t))return false;return true}
 const pre4=k=>k.slice(0,Math.max(4,k.length-2));
 function aspectTerms(keys){const out=new Set();const main=keys.filter(k=>!GENERIC.test(k));(main.length?main:keys).forEach(k=>out.add(pre4(k)));
   keys.forEach(k=>ASP.forEach(([re,list])=>{if(re.test(k))list.forEach(x=>out.add(x))}));return[...out]}
@@ -1449,7 +1467,7 @@ async function focusedSections(lang,ent,aspKeys,topic,f){
         setStatus("Inglizcha ma'lumot o'zbekchaga tarjima qilinmoqda…");
         const flat=[];es.forEach(x=>{flat.push(x.head);x.sents.forEach(y=>flat.push(y))});
         const tr=await translateList(flat,"en",lang);let k=0;
-        es.forEach(x=>{const h=tr[k++];const ss=x.sents.map(()=>tr[k++]).filter(y=>y&&y.length>20);addSec(h&&h.length<60?cap(h):aspPhrase,ss,pg.title+" (en)")});
+        es.forEach(x=>{const h=tr[k++];const ss=x.sents.map(()=>tr[k++]).filter(y=>y&&y.length>20&&!foreignOf(y,topic));addSec(h&&h.length<60?cap(h):aspPhrase,ss,pg.title+" (en)")});
         enUsed={title:pg.title,url:wikiUrl("en",pg.title),page:pg}}}}catch(_){}}
   return{secs,used,total,enUsed,E}}
 
@@ -1535,7 +1553,8 @@ async function generate(force){
       const cands=[...new Set(((sr.query&&sr.query.search)||[]).map(h=>h.title).concat(f.others||[]))].filter(t=>t!==main.title).slice(0,6);
       let best=main,bestSc=Math.min(sentN(main),120)*(1+textHits(main));
       const allow0=[...new Set(kindsOf(lang,leadOf(main)).concat(kindsOf(lang,topic)))];
-      for(const t of cands){if(homoTitle(t,main.title,topic))continue;const pg=await article(lang,t),hn=textHits(pg);if(otherKind(lang,pg,allow0))continue;if(hn<Math.min(2,topicKeys.length))continue;
+      const mainRel=relevance(main.title,topicKeys);
+      for(const t of cands){if(homoTitle(t,main.title,topic))continue;if(mainRel>=2&&relevance(t,topicKeys)<mainRel)continue;const pg=await article(lang,t),hn=textHits(pg);if(otherKind(lang,pg,allow0))continue;if(hn<Math.min(2,topicKeys.length))continue;
         const sc=Math.min(sentN(pg),120)*(1+hn)*(1+relevance(pg.title,topicKeys)*.5);if(sc>bestSc*1.5){best=pg;bestSc=sc}}
       main=best}catch(e){if(e.message==="net"||e.message==="csp")throw e}}
     const shown=cap(topic||main.title); // sarlavhaga har doim foydalanuvchi yozgan mavzu qo'yiladi
@@ -1591,7 +1610,7 @@ async function generate(force){
         setStatus("Inglizcha ma'lumot tarjima qilinmoqda…");
         const flat=[];pick.forEach(x=>{flat.push(x.head);x.sents.forEach(y=>flat.push(y))});
         const tr=await translateList(flat,"en",lang);let k=0;
-        pick.forEach(x=>{const h=tr[k++];const ss=x.sents.map(()=>tr[k++]).filter(y=>y&&y.length>20);if(ss.length)secs.push({head:cap(h||x.head),sents:ss,src:pg.title+" (en)"})});
+        pick.forEach(x=>{const h=tr[k++];const ss=x.sents.map(()=>tr[k++]).filter(y=>y&&y.length>20&&!foreignOf(y,topic));if(ss.length)secs.push({head:cap(h||x.head),sents:ss,src:pg.title+" (en)"})});
         sources.push({title:pg.title,url:wikiUrl("en",pg.title),lang:"en"});imgSeeds.push({lang:"en",title:pg.title})}}catch(_){}}
     if(!secs.length){setStatus("Maqola juda qisqa ekan. Boshqa mavzu yoki tilni tanlang.",true);return}
     if(!focused&&!f.exact&&!force){const dk=topicKeys.filter(k=>!GENERIC.test(k)&&!STOP.has(k)).map(pre4),gk=topicKeys.map(pre4);
@@ -1603,7 +1622,8 @@ async function generate(force){
     if(deck.uni&&!deck.uniUp&&!deck.uniImg){setStatus("Universitet rasmi qidirilmoqda…");await lookupUni()}
     CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
     let plan;
-    if(planMode==="manual"){plan=await fillPlan(parsePlan($("#planText").value),secs,{lang,topic:shown,sources,slides:n})}
+    if(planMode==="manual"){let enMain=null;try{enMain=lang==="en"?null:await langTitle(lang,main.title,"en")}catch(_){}
+      plan=await fillPlan(parsePlan($("#planText").value),secs,{lang,topic:shown,sources,slides:n,main:main.title,enMain})}
     else{plan=planFromSecs(secs,planMode,+$("#planCount").value,n);if(planMode==="complex")await deepenPlan(plan,secs,{lang,topic:shown,sources})}
     setStatus("Adabiyotlar ro'yxati yig'ilmoqda…");
     const refs=await collectRefs(lang,main.title,sources);
