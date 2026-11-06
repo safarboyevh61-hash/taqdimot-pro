@@ -3082,7 +3082,7 @@ function aiImgs(list){return Promise.all((list||[]).slice(0,18).map(x=>new Promi
       fin(sd<8?null:u)}catch(_){fin(u)}};im.src=u}))).then(a=>[...new Set(a.filter(Boolean))])}
 async function aiGenerate(topic,lang,n,planMode){
   const manual=planMode==="manual"?parsePlan($("#planText").value):null,count=+$("#planCount").value||5;
-  const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,c:String(count),i:tgInit()});
+  const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,pc:String(count),i:tgInit()}); // «c» — Apps Script'da band nom
   if(manual)p.set("r",JSON.stringify(manual.map(it=>({t:it.title,s:it.subs.map(x=>x.title)}))));
   if(jlOn())p.set("j","1");window.__jlSrc=[];window.__jlN=0;
   const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 20–90 soniya)`;
@@ -3158,7 +3158,7 @@ function aiGDev(){const sec=document.getElementById("gPay"),box=document.getElem
   const adm=!!AI_ADM,dev=aiDev();sec.classList.toggle("gp-free",adm);
   if(!adm&&!dev){box.hidden=true;return}
   const ok=v=>v?"✅":"⚠️",old=AI_VER==="eski"||!AI_VON;
-  const diag=`🌐 Sayt: v21 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
+  const diag=`🌐 Sayt: v22 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
   box.hidden=false;
   if(adm){box.innerHTML=`<b>👨‍💻 Dasturchi rejimi</b><p>Google va 🎬 Jonli slayd siz uchun <b>ochiq — bepul va cheksiz</b>. To'lov shart emas.</p>
     <div class="gp-dev-b"><button type="button" data-gdev="g">🔎 Google bilan slayd yaratish</button><button type="button" data-gdev="j">🎬 Jonli slayd yaratish</button></div>
