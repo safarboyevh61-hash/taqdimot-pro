@@ -521,6 +521,7 @@ Ta'limni moliyalashtirish"></textarea>
     <button class="primary" id="go">Slayd yaratish</button>
     <div class="status" id="status" role="status"></div>
     <div id="aiChip" hidden></div>
+    <div id="aiPay" hidden></div>
     <div class="src-box">
       <span class="lbl">Ma'lumot qayerdan olinsin? (4 usul)</span>
       <div class="src-tabs" role="tablist">
@@ -1556,11 +1557,13 @@ function needCode(){renderLock();$("#lockBox").scrollIntoView({behavior:"smooth"
 
 async function generate(force){
   const topic=$("#topic").value.trim(),lang=$("#lang").value,n=+$("#count").value;if(!topic&&!force){setStatus("Avval mavzuni yozing.",true);return}
-  if(!canCreate(topic)){needCode();return}
+  const viaAI=!force&&window.aiWant&&aiWant();
+  if(!viaAI&&!canCreate(topic)){needCode();return}
   const planMode=$("#planType").value;if(planMode==="manual"&&!parsePlan($("#planText").value).length){setStatus("Rejangizni yozing: har bir bandni yangi qatorga.",true);$("#planText").focus();return}
   $("#go").disabled=true;setStatus("Mavzuga mos maqola qidirilmoqda…");if(window.aiChip)aiChip("");
   try{
-    if(!force&&window.aiWant&&aiWant()&&await aiGenerate(topic,lang,n,planMode))return;
+    if(viaAI){const ar=await aiGenerate(topic,lang,n,planMode);if(ar)return;
+      if(!canCreate(topic)){setStatus("Google'dan javob kelmadi — balansingizdan hech narsa yechilmadi. Birozdan keyin qayta urinib ko'ring.",true);return}}
     const f=await findMain(lang,force||topic);
     const mainTitle=force||f.main;
     if(!mainTitle){setStatus("Bu mavzu bo'yicha maqola topilmadi. Boshqacha yozib ko'ring yoki tilni o'zgartiring.",true);return}
@@ -2960,6 +2963,7 @@ async function aiGenerate(topic,lang,n,planMode){
   const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 15–40 soniya)`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
   let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),170000)}finally{clearInterval(tick)}
+  if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;aiPayShow(n);aiNote();setStatus(`🔎 Google bilan ${n} ta slayd — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} slayd. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
   if(!res||!res.ok||!Array.isArray(res.secs)){
     if(!res||res.why==="nokey"||res.why==="off")window.AI_NO=1;
     setStatus((res&&res.why==="ulimit"?res.msg+" ":"")+"Google'dan ma'lumot olinmadi — Vikipediyadan qidirilmoqda…");return false}
@@ -2982,27 +2986,56 @@ async function aiGenerate(topic,lang,n,planMode){
   if(deck.uni&&!deck.uniUp&&!deck.uniImg){try{setStatus("Universitet rasmi qidirilmoqda…");await lookupUni()}catch(_){}}
   CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
   const web=(res.src||[]).filter(x=>x&&/^https?:\/\//.test(x.url||"")).map(x=>({title:String(x.title||x.url).slice(0,120),url:x.url,lang:"web"}));
-  const sources=web.slice();
+  // Google rasmlari manbasi: har bir rasm turgan sahifaga bir bosishda o'tiladi (Google talabi)
+  const usedG=new Set(gPool),imgSrc=[];
+  (res.img||[]).forEach(x=>{if(x&&x.p&&/^https?:\/\//.test(x.p)&&usedG.has(aiWsrv(x.u))&&!imgSrc.some(y=>y.url===x.p)&&!web.some(y=>y.url===x.p))
+    imgSrc.push({title:"🖼 "+String(x.t||x.p.replace(/^https?:\/\/(www\.)?/,"").split("/")[0]).slice(0,60),url:x.p,lang:"img"})});
+  const sources=web.concat(imgSrc.slice(0,10));
   if(!res.gs)sources.push({title:"Google Gemini (sun'iy intellekt)",url:"https://gemini.google.com",lang:"web"});
   if(f.main)sources.push({title:main.title,url:wikiUrl(lang,main.title)});
   let books=[];if(f.main){try{setStatus("📚 Adabiyotlar ro'yxati yig'ilmoqda…");books=await collectRefs(lang,main.title,sources.filter(x=>!x.lang))}catch(_){}}
-  const webRefs=web.map(x=>`${x.title} — ${x.url}`),refs=books.slice(0,Math.max(4,10-webRefs.length)).concat(webRefs).slice(0,10);
+  const webRefs=web.map(x=>`${x.title} — ${x.url}`).concat(imgSrc.slice(0,4).map(x=>`Rasm: ${x.title.replace(/^🖼 /,"")} — ${x.url}`)),refs=books.slice(0,Math.max(4,12-webRefs.length)).concat(webRefs).slice(0,12);
   const shown=cap(topic),r=buildPlanSlides(shown,secs,plan,planMode,pool,n,sources,refs);
   if(res.xulosa&&res.xulosa.length){const xs=r.slides.find(x=>x.kind==="xulosa");if(xs)xs.bullets=res.xulosa.slice(0,Math.max(3,CH.n))}
   r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
   try{await enrichCards(r.slides,lang,main.title)}catch(_){}
   const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
   deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:(f.others||[]).filter(t=>t!==main.title),lang});
-  save();render();consumeCredit(topic);
-  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:""));
+  save();render();if(res.qoldi!=null){AI_BAL=+res.qoldi;aiNote()}
+  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} slayd qoldi.`:""));
   if(res.gs&&res.chip)aiChip(res.chip);
   return true}
+// 💰 Google bilan: har slayd AI_NG so'm (bot balansidan), oddiy — AI_NW so'm
+let AI_BAL=0,AI_NG=1000,AI_NW=8000,AI_ADM=false,AI_GS=true;
+const aiSom=x=>String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm";
+function aiNote(){const nt=document.getElementById("aiSwNote"),c=document.getElementById("aiSw"),n=+(document.getElementById("count")||{}).value||10;
+  if(nt)nt.innerHTML=`💰 <b>${n} slayd × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b>${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} slayd</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
+  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} slayd)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}}
+function aiPayShow(n){const box=document.getElementById("aiPay");if(!box)return;
+  const num=((document.getElementById("payNum")||{}).textContent||"").trim(),req=getReq(),need=Math.max(n,n-AI_BAL);
+  box.hidden=false;box.innerHTML=`<div class="aipay"><h3>🔎 Google bilan slayd — to'lov</h3>
+    <p>📊 <b>${n} ta slayd × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b><br>💼 Balansingizda: <b>${AI_BAL} slayd</b></p>
+    ${num?`<div class="aipay-k"><span>💳 Karta:</span><code>${num}</code><button type="button" id="aiPayCopy">Nusxa</button></div>`:""}
+    <ol><li>Kartaga <b>${aiSom(n*AI_NG)}</b> o'tkazing.</li><li><b>«🤖 Chekni botga yuborish»</b>ni bosing va chek skrinshotini botga yuboring.</li><li>To'lov tasdiqlangach, balansingizga <b>${n} slayd</b> qo'shiladi — shu yerda «Slayd yaratish»ni qayta bosing.</li></ol>
+    <div class="req"><span>So'rov kodingiz:</span><code>${req}</code></div>
+    <button type="button" class="pay-tg" id="aiPayBot">🤖 Chekni botga yuborish (${aiSom(n*AI_NG)})</button>
+    <button type="button" class="aipay-w" id="aiPayWiki">📚 Oddiy slayd (Vikipediya) — ${aiSom(AI_NW)}</button></div>`;
+  const cp=document.getElementById("aiPayCopy");if(cp)cp.onclick=()=>copyPlain(num.replace(/\s/g,""),cp);
+  document.getElementById("aiPayBot").onclick=()=>openBot("ai_"+normCode(req)+"_"+n);
+  document.getElementById("aiPayWiki").onclick=()=>{const c=document.getElementById("aiSw");if(c){c.checked=false;try{localStorage.setItem("tp_ai","0")}catch(_){}}box.hidden=true;aiNote();generate()};
+  box.scrollIntoView({behavior:"smooth",block:"center"})}
 // botda Google kaliti bo'lsa — tanlov ko'rinadi
 (function(){const b=document.getElementById("aiSwBox"),c=document.getElementById("aiSw");if(!b||!c||!aiAvail())return;
-  try{if(localStorage.getItem("tp_ai")==="0")c.checked=false}catch(_){}
-  c.onchange=()=>{try{localStorage.setItem("tp_ai",c.checked?"1":"0")}catch(_){}};
-  aiJsonp(tgApi()+"?act=ai&ping=1",20000).then(r=>{if(r&&r.ok){b.hidden=false;const nt=document.getElementById("aiSwNote");
-    if(nt)nt.textContent=r.gs?"Rasmlar ham Google topgan saytlardan olinadi, manbalar ro'yxati qo'shiladi. O'chirsangiz — Vikipediyadan.":"Rasmlar Vikipediyadan olinadi. O'chirsangiz — matn ham Vikipediyadan."}else window.AI_NO=1})})();
+  let ls=null;try{ls=localStorage.getItem("tp_ai");if(new URLSearchParams(location.search).get("ai")==="1"){ls="1";localStorage.setItem("tp_ai","1")}}catch(_){}
+  c.checked=ls==="1";
+  c.onchange=()=>{try{localStorage.setItem("tp_ai",c.checked?"1":"0")}catch(_){}const p=document.getElementById("aiPay");if(p&&!c.checked)p.hidden=true;aiNote()};
+  ["count","topic"].forEach(id=>{const e=document.getElementById(id);if(e){e.addEventListener("change",()=>setTimeout(aiNote,0));e.addEventListener("input",()=>setTimeout(aiNote,0))}});
+  document.head.insertAdjacentHTML("beforeend",`<style>.aipay{margin-top:10px;padding:14px;border:2px solid #2a64e0;border-radius:14px;background:rgba(42,100,224,.07)}.aipay h3{margin:0 0 6px;font-size:17px}.aipay p{margin:6px 0}.aipay ol{margin:8px 0 10px 18px;padding:0;font-size:14px;line-height:1.45}
+    .aipay-k{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}.aipay-k code{font-size:16px;font-weight:700}.aipay-k button{padding:6px 10px;border-radius:8px;border:1px solid #2a64e0;background:transparent;color:inherit}
+    .aipay-w{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1px dashed #8aa0d8;background:transparent;color:inherit;font-weight:700}</style>`);
+  aiJsonp(tgApi()+"?act=ai&ping=1&i="+encodeURIComponent(tgInit()||""),20000).then(r=>{if(r&&r.ok){b.hidden=false;AI_GS=r.gs!==false;AI_ADM=!!r.adm;
+      if(r.bal!=null)AI_BAL=+r.bal;if(r.narxg)AI_NG=+r.narxg;if(r.narxw)AI_NW=+r.narxw;
+      if(ls===null&&(AI_BAL>0||AI_ADM))c.checked=true;aiNote()}else window.AI_NO=1})})();
 </script>
 </body>
 </html>
