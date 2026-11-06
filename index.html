@@ -3059,6 +3059,14 @@ async function aiGet(url,ms){const t0=Date.now();window.__aiRaw="";let r=await a
     if(m){try{return JSON.parse(m[1])}catch(e){window.__aiRaw="javobni o'qib bo'lmadi ("+String(e&&e.message||e).slice(0,80)+")";return undefined}}
     window.__aiRaw=`bot javobi (HTTP ${rr.status}): `+tx.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,220)}
   catch(e){window.__aiRaw="botga so'rov yuborilmadi ("+String(e&&e.message||e).slice(0,100)+")"}
+  // 3-yo'l: POST (so'rov manzilda emas, ichida yuboriladi)
+  const left2=ms-(Date.now()-t0);if(left2<5000)return undefined;
+  try{const U=new URL(url),body={};U.searchParams.forEach((v,k)=>{body[k]=v});
+    const ctl=typeof AbortController!=="undefined"?new AbortController():null,tm=setTimeout(()=>ctl&&ctl.abort(),left2);
+    const rr=await fetch(U.origin+U.pathname,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body),credentials:"omit",cache:"no-store",signal:ctl?ctl.signal:undefined});clearTimeout(tm);
+    const tx=await rr.text();try{const j=JSON.parse(tx);if(j&&typeof j==="object"){window.__aiRaw="";return j}}catch(_){}
+    window.__aiRaw+=` · POST: HTTP ${rr.status}: `+(tx.trim()==="ok"?"bot kodi eski (POST'ni bilmaydi) — bot kodini yangilang":tx.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,160))}
+  catch(e){window.__aiRaw+=" · POST: "+String(e&&e.message||e).slice(0,100)}
   return undefined}
 // Google qidiruv takliflari (Google talabi: qidiruv natijasidan foydalanilganda ko'rsatiladi)
 function aiChip(html){const box=document.getElementById("aiChip");if(!box)return;if(!html){box.hidden=true;box.innerHTML="";return}
@@ -3150,7 +3158,7 @@ function aiGDev(){const sec=document.getElementById("gPay"),box=document.getElem
   const adm=!!AI_ADM,dev=aiDev();sec.classList.toggle("gp-free",adm);
   if(!adm&&!dev){box.hidden=true;return}
   const ok=v=>v?"✅":"⚠️",old=AI_VER==="eski"||!AI_VON;
-  const diag=`🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
+  const diag=`🌐 Sayt: v21 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
   box.hidden=false;
   if(adm){box.innerHTML=`<b>👨‍💻 Dasturchi rejimi</b><p>Google va 🎬 Jonli slayd siz uchun <b>ochiq — bepul va cheksiz</b>. To'lov shart emas.</p>
     <div class="gp-dev-b"><button type="button" data-gdev="g">🔎 Google bilan slayd yaratish</button><button type="button" data-gdev="j">🎬 Jonli slayd yaratish</button></div>
