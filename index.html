@@ -545,6 +545,7 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
     <div class="pay-note">1) Kartaga <b id="gpSum2"></b> o'tkazing. 2) <b>«🤖 Chekni botga yuborish»</b>ni bosing va chekni yuboring. 3) To'lov tasdiqlangach, bot <b>Google kirish kodi</b>ni yuboradi — kodni pastga yozing.</div>
     <button type="button" class="pay-tg" id="gpBot"><span id="gpBotT">🤖 Chekni botga yuborish</span></button>
     <div class="gp-kod"><span>🔑 Google kirish kodi</span><div><input id="gpKodIn" type="text" placeholder="G10-XXXXXX" autocomplete="off" autocapitalize="characters" aria-label="Google kirish kodi"><button type="button" id="gpKodGo">Ochish</button></div></div>
+    <small class="gp-pr">🎟 Juma promo kodlari faqat oddiy slayd uchun — 🔎 Google va 🎬 Jonli slayd faqat to'lov yoki Google kirish kodi bilan.</small>
     <div class="gp-msg" id="gpMsg" hidden></div>
   </section>
   <section class="jlsec" id="jlSec" aria-label="Jonli slayd" hidden>
@@ -1221,7 +1222,10 @@ function buildPlanSlides(title,sections,plan,mode,pool,n,sources,refs){refs=refs
   {const target=Math.max(units.length,n-3-refSlides),have=units.reduce((a,u)=>a+u.ch.length,0);
    // slaydlar yetmasa — eng to'la slayd ikkiga bo'linadi (har slaydda imkon qadar ko'p ma'lumot qoladi)
    let tot=have;while(tot<target){let bu=-1,bc=-1,bl=1;units.forEach((u,ui)=>u.ch.forEach((c,ci)=>{if(c.length>bl){bl=c.length;bu=ui;bc=ci}}));if(bu<0)break;
-     const c=units[bu].ch[bc],h=Math.ceil(c.length/2);units[bu].ch.splice(bc,1,c.slice(0,h),c.slice(h));tot++}}
+     const c=units[bu].ch[bc],h=Math.ceil(c.length/2);units[bu].ch.splice(bc,1,c.slice(0,h),c.slice(h));tot++}
+   // baribir yetmasa — eng uzun gaplar ikki to'liq qismga bo'linadi (tanlangan betlar soni chiqsin)
+   const bad=new Set();while(tot<target){let bu=-1,bc=-1,bl=110;units.forEach((u,ui)=>u.ch.forEach((c,ci)=>{if(c.length===1&&c[0].length>bl&&!bad.has(c[0])){bl=c[0].length;bu=ui;bc=ci}}));if(bu<0)break;
+     const s=units[bu].ch[bc][0],p=splitLong(s,Math.ceil(s.length*.62));if(p.length<2){bad.add(s);continue}units[bu].ch.splice(bc,1,[p[0]],p.slice(1));tot++}}
   const room=Math.max(units.length,n-3-refSlides),alloc=units.map(()=>1);let extra=room-units.length,moved=true;
   while(extra>0&&moved){moved=false;for(let k=0;k<units.length&&extra>0;k++)if(units[k].ch.length>alloc[k]){alloc[k]++;extra--;moved=true}}
   let ip=1;const take=c=>{const r=[];while(r.length<c&&ip<pool.length)r.push(pool[ip++]);return r};
@@ -1608,7 +1612,21 @@ if(lsGet("tp_unlim")==="1"&&lsGet("tp_unlim_off")!=="1"){lsSet("tp_unlim",null)}
 const isDev=()=>lsGet("tp_dev")==="1",isUnlim=()=>lsGet("tp_unlim")==="1";
 const hasCredit=()=>lsGet("tp_credit")==="1";
 function canCreate(topic){return isDev()||isUnlim()||hasCredit()||(lsGet("tp_used_topic")&&lsGet("tp_used_topic")===norm(topic||""))}
-function consumeCredit(topic){if(isDev()||isUnlim())return;if(hasCredit()){lsSet("tp_credit",null);lsSet("tp_used_topic",norm(topic||""));lsSet("tp_req",newReq())}renderLock()}
+// 🎁 Juma promo kodi (botdagi /promo bilan bir xil): faqat Juma kuni (Toshkent vaqti), faqat oddiy (Vikipediya) slayd, har telefonda 1 marta.
+// Google va Jonli slayd promo kod bilan ochilmaydi — ular faqat bot balansidan.
+function jumaKod(ymd){return "JUMA"+enc(h53(SALT+"|JUMA|"+ymd),4)}
+function jumaTek(v){const c=normCode(v);if(!/^JUMA[A-Z0-9]{4}$/.test(c))return null;
+  const t=new Date(Date.now()+5*36e5),d=t.getUTCDay(),kun=k=>new Date(t.getTime()+k*864e5).toISOString().slice(0,10),
+    oldin=kun(-((d-5+7)%7)),keyin=kun((5-d+7)%7),kor=s=>s.split("-").reverse().join(".");
+  if(d===5&&c===jumaKod(oldin)){if(lsGet("tp_juma")===oldin)return{ok:false,msg:"Bu Juma promo kodidan shu telefonda foydalanib bo'lgansiz. Keyingi Juma yangi kod e'lon qilinadi."};return{ok:true,ymd:oldin}}
+  if(c===jumaKod(keyin))return{ok:false,msg:`Bu Juma promo kodi ${kor(keyin)} (Juma) kuni ishlaydi.`};
+  if(c===jumaKod(oldin)||c===jumaKod(kun(-((d-5+7)%7)-7)))return{ok:false,msg:"Bu Juma promo kodining muddati tugagan — kod faqat o'sha Juma kuni ishlaydi. Yangi kodni Juma kuni botdan yoki kanaldan oling."};
+  return{ok:false,msg:"Juma promo kodi noto'g'ri. Tekshirib, qaytadan yozing."}}
+function jumaQolla(jr){lsSet("tp_juma",jr.ymd);lsSet("tp_credit","1");lsSet("tp_credit_j","1");
+  // promo — faqat oddiy slayd: Google tanlovi o'chiriladi (aks holda «Slayd yaratish» Google balansini so'raydi)
+  const sw=document.getElementById("aiSw");if(sw&&sw.checked){sw.checked=false;try{localStorage.setItem("tp_ai","0")}catch(_){}try{aiNote()}catch(_){}}
+  renderLock();setStatus("🎁 Juma promo kodi qabul qilindi! 1 ta oddiy (Vikipediya) taqdimotni bepul yaratishingiz mumkin — mavzuni yozib «Slayd yaratish»ni bosing. ℹ️ Promo kod 🔎 Google va 🎬 Jonli slaydni ochmaydi.")}
+function consumeCredit(topic){if(isDev()||isUnlim())return;if(hasCredit()){lsSet("tp_credit",null);lsSet("tp_credit_j",null);lsSet("tp_used_topic",norm(topic||""));lsSet("tp_req",newReq())}renderLock()}
 function tgText(){return `Assalomu alaykum! "Taqdimot Pro" uchun 8 000 so'm to'ladim. So'rov kodim: ${getReq()}`}
 function renderLock(){
   const box=$("#lockBox");if(!box)return;
@@ -1623,12 +1641,12 @@ function renderLock(){
     $("#devGen").onclick=gen;$("#devReq").addEventListener("keydown",e=>{if(e.key==="Enter")gen()});
     $("#devExit").onclick=()=>{lsSet("tp_dev",null);renderLock()};updateGo();return}
   if(isUnlim()){box.className="lock open";box.innerHTML=`<h2>✅ Cheksiz kirish ochiq</h2><div class="ok">Promo kod faollashtirilgan: taqdimotlarni cheksiz yaratishingiz mumkin.</div>`;updateGo();return}
-  if(hasCredit()){box.className="lock open";box.innerHTML=`<h2>✅ Kirish ochiq</h2><div class="ok">Kod qabul qilindi. Endi 1 ta taqdimot yaratishingiz mumkin.</div>`;updateGo();return}
+  if(hasCredit()){box.className="lock open";box.innerHTML=lsGet("tp_credit_j")==="1"?`<h2>🎁 Juma promo kodi qabul qilindi</h2><div class="ok">1 ta <b>oddiy (Vikipediya)</b> taqdimotni bepul yaratishingiz mumkin. Promo kod 🔎 Google va 🎬 Jonli slaydni ochmaydi.</div>`:`<h2>✅ Kirish ochiq</h2><div class="ok">Kod qabul qilindi. Endi 1 ta taqdimot yaratishingiz mumkin.</div>`;updateGo();return}
   const req=getReq();box.className="lock";box.innerHTML=`<h2>${window.AI_ON?"🔒 📚 Oddiy slayd (Vikipediya) — yopiq":"🔒 Slayd yaratish yopiq"}</h2>
     <p>1) Kartaga 8 000 so'm o'tkazing. 2) <b>«🤖 Chekni botga yuborish»</b>ni bosing va chek skrinshotini botga yuboring. 3) To'lov tasdiqlangach, bot <b>kirish kodini</b> o'zi yuboradi.</p>
     <div class="req"><span>So'rov kodingiz:</span><code id="reqCode">${req}</code><button type="button" id="reqCopy">Nusxa olish</button></div>
     <button type="button" class="pay-tg" id="lockBot">🤖 Chekni botga yuborish</button>
-    <div class="codebox"><span class="lbl">🎟 Promo kod (foydalanuvchilar uchun)</span><small>Promo kod yoki to'lovdan keyin bot yuborgan kirish kodini yozing.</small>
+    <div class="codebox"><span class="lbl">🎟 Promo kod (faqat oddiy slayd uchun)</span><small>🎁 Juma promo kodi yoki to'lovdan keyin bot yuborgan kirish kodini yozing. Promo kod 🔎 Google va 🎬 Jonli slaydni ochmaydi.</small>
       <div class="row2"><input id="accIn" type="text" placeholder="Promo kod" autocomplete="off" aria-label="Promo kod"><button type="button" class="primary" id="accGo" style="padding:11px 18px">Ochish</button></div></div>
     <div class="codebox"><span class="lbl">👨‍💻 Dasturchi uchun kirish kodi</span>
       <div class="row2"><input id="devIn" type="password" placeholder="Dasturchi kodi" autocomplete="off" aria-label="Dasturchi uchun kirish kodi"><button type="button" id="devGo" style="padding:11px 18px">Kirish</button></div></div>
@@ -1640,6 +1658,7 @@ function renderLock(){
   $("#devGo").onclick=tryDev;$("#devIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryDev()});
   const tryCode=()=>{const v=$("#accIn").value.trim();if(!v)return;
     if(EXPIRED_PROMO.includes(normCode(v))){$("#accErr").textContent="Bu promo kodning muddati tugagan.";return}
+    {const jr=jumaTek(v);if(jr){if(jr.ok)jumaQolla(jr);else $("#accErr").textContent=jr.msg;return}}
     if(normCode(v)===accessFor(req)){lsSet("tp_credit","1");renderLock();setStatus("Kod qabul qilindi. Mavzuni yozib «Slayd yaratish»ni bosing.");return}
     $("#accErr").textContent="Promo kod noto'g'ri. Tekshirib, qaytadan kiriting."};
   $("#accGo").onclick=tryCode;$("#accIn").addEventListener("keydown",e=>{if(e.key==="Enter")tryCode()});
@@ -2842,7 +2861,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 // 📤 Ulashish: Telegram'da chat/guruh/kanal tanlash oynasi (bot havolasi + tayyor reklama matni)
 function tpShare(){let ng=1000,nw=8000;try{ng=AI_NG;nw=AI_NW}catch(_){}
   const som=x=>String(x).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm",link="https://t.me/Pro_slidesgo_bot?start=ulash";
-  const txt=`🎓 Taqdimot Pro — 1 daqiqada tayyor slayd!\n🔎 Endi ma'lumot va rasmlar Google'dan — eng yangi, manbalar ro'yxati bilan.\n✅ 111 ta shablon · PPTX va PDF · o'zbek, rus, ingliz tillarida\n💰 Google bilan — har bir slayd beti ${som(ng)}, oddiy taqdimot — ${som(nw)}\n🎁 Har Juma — bepul promo kodlar!\n👇 Sinab ko'ring:`;
+  const txt=`🎓 Taqdimot Pro — 1 daqiqada tayyor slayd!\n🔎 Endi ma'lumot va rasmlar Google'dan — eng yangi, manbalar ro'yxati bilan.\n✅ 111 ta shablon · PPTX va PDF · o'zbek, rus, ingliz tillarida\n💰 Google bilan — har bir slayd beti ${som(ng)}, oddiy taqdimot — ${som(nw)}\n🎁 Har Juma — oddiy slayd uchun bepul promo kod!\n👇 Sinab ko'ring:`;
   const u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(txt);window.__share=u;
   if(window.IN_TG&&IN_TG()&&window.tgOpen){tgOpen(u);return}
   if(navigator.share){navigator.share({text:txt,url:link}).catch(()=>{});return}
@@ -3107,7 +3126,7 @@ async function aiGenerate(topic,lang,n,planMode){
   const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,pc:String(count),i:tgInit()}); // «c» — Apps Script'da band nom
   if(manual)p.set("r",JSON.stringify(manual.map(it=>({t:it.title,s:it.subs.map(x=>x.title)}))));
   if(jlOn())p.set("j","1");window.__jlSrc=[];window.__jlN=0;
-  const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 20–90 soniya)`;
+  const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ${n} betga yetadigan ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (${n>20?"ko'p betli taqdimot — odatda 1–3 daqiqa":"odatda 20–90 soniya"})`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
   let res;try{res=await aiGet(tgApi()+"?"+p.toString(),300000)}finally{clearInterval(tick)}window.__aiErr="";
   if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;if(res.narxj)AI_NJ=+res.narxj;aiPayShow(n);aiNote();
@@ -3158,7 +3177,8 @@ async function aiGenerate(topic,lang,n,planMode){
   const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
   deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources:sources.concat(window.__jlSrc||[]),pool,cands:(f.others||[]).filter(t=>t!==main.title),lang,jonli:jlOn(),vids:{}});
   save();render();if(res.qoldi!=null){AI_BAL=+res.qoldi;aiNote()}
-  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(deck.jonli&&window.__jlN?` 🎬 ${window.__jlN} ta slaydga o'z rasmi qo'yildi — rasmlarni videoga aylantirish uchun pastdagi «🎥 Rasmlarni jonlantirish» bo'limiga o'ting.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} bet qoldi.`:""));
+  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(deck.jonli&&window.__jlN?` 🎬 ${window.__jlN} ta slaydga o'z rasmi qo'yildi — rasmlarni videoga aylantirish uchun pastdagi «🎥 Rasmlarni jonlantirish» bo'limiga o'ting.`:"")+(r.slides.length<n?` ⚠️ Siz ${n} bet tanlagansiz, lekin Google bu mavzu bo'yicha ${r.slides.length} betlik ma'lumot topdi`+(res.yechildi!=null?` — balansdan faqat ${res.yechildi} bet yechildi.`:".")+" Mavzuni kengroq yozsangiz, ko'proq slayd chiqadi.":"")
+    +(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} bet qoldi.`:""));
   if(res.gs&&res.chip)aiChip(res.chip);
   return true}
 // 💰 Google bilan: har bir bet AI_NG so'm (bot balansidan), oddiy — AI_NW so'm
@@ -3184,7 +3204,7 @@ function aiGDev(){const sec=document.getElementById("gPay"),box=document.getElem
   const adm=!!AI_ADM,dev=aiDev();sec.classList.toggle("gp-free",adm);
   if(!adm&&!dev){box.hidden=true;return}
   const ok=v=>v?"✅":"⚠️",old=AI_VER==="eski"||!AI_VON;
-  const diag=`🌐 Sayt: v23 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
+  const diag=`🌐 Sayt: v25 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
   box.hidden=false;
   if(adm){box.innerHTML=`<b>👨‍💻 Dasturchi rejimi</b><p>Google va 🎬 Jonli slayd siz uchun <b>ochiq — bepul va cheksiz</b>. To'lov shart emas.</p>
     <div class="gp-dev-b"><button type="button" data-gdev="g">🔎 Google bilan slayd yaratish</button><button type="button" data-gdev="j">🎬 Jonli slayd yaratish</button></div>
@@ -3206,7 +3226,10 @@ function aiPayShow(n,quiet){const sec=document.getElementById("gPay");if(!sec)re
 const isGKod=v=>/^G\d{2}[A-Z0-9]{6}$/.test(normCode(v));
 function gpMsg(t,err,btn){const m=document.getElementById("gpMsg");if(!m)return;m.hidden=false;m.className="gp-msg"+(err?" err":"");m.textContent=t;
   if(btn){const b=document.createElement("button");b.type="button";b.textContent="✨ Slayd yaratishga o'tish";b.onclick=()=>{const tp=document.getElementById("topic");if(tp){tp.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>tp.focus(),400)}};m.append(b)}}
-async function aiRedeem(code){const c=normCode(code);if(!isGKod(c)){const t="Google kirish kodi G20-XXXXXX ko'rinishida bo'ladi. Tekshirib qayta yozing.";setStatus(t,true);gpMsg(t,true);return false}
+async function aiRedeem(code){const c=normCode(code);
+  {const jr=jumaTek(c);if(jr){const t=jr.ok?"🎁 Bu — Juma promo kodi: u faqat oddiy (Vikipediya) slayd uchun, Google va 🎬 Jonli slaydni ochmaydi. Kod oddiy slayd uchun qo'llandi — «⭐ PRO: Google'dan qidirish» o'chirildi.":"🎁 Juma promo kodi faqat oddiy (Vikipediya) slayd uchun — Google va 🎬 Jonli slaydni ochmaydi. "+jr.msg;
+    if(jr.ok){jumaQolla(jr);const i=document.getElementById("gpKodIn");if(i)i.value=""}setStatus(t,!jr.ok);gpMsg(t,!jr.ok);return false}}
+  if(!isGKod(c)){const t="Google kirish kodi G20-XXXXXX ko'rinishida bo'ladi. Tekshirib qayta yozing.";setStatus(t,true);gpMsg(t,true);return false}
   setStatus("🔑 Kod tekshirilmoqda…");gpMsg("🔑 Kod tekshirilmoqda…");const r=await aiJsonp(tgApi()+"?act=ai&gkod="+c+"&i="+encodeURIComponent(tgInit()||""),25000);
   if(r&&r.ok&&r.gkod){AI_BAL=+r.bal;const k=document.getElementById("aiSw");if(k){k.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}aiNote();
     const i=document.getElementById("gpKodIn");if(i)i.value="";const t=`✅ Kod qabul qilindi! Google balansingizga ${r.add} bet qo'shildi (jami ${r.bal} bet).`;
@@ -3232,6 +3255,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.
     .gpay .gp-calc label{margin:0;color:#d6f7ef;font:700 15px/1.2 system-ui,sans-serif;text-transform:none;letter-spacing:0}
     .gpay .gp-calc select{flex:none;width:auto!important;min-width:104px;max-width:140px;padding:9px 12px;border-radius:10px;border:2px solid #4fd8bd;background:#06222b!important;color:#fff!important;font:700 17px/1 system-ui,sans-serif;box-shadow:none}
     .gp-sum{font:800 19px/1.3 "Montserrat",system-ui,sans-serif;text-align:center}.gp-sum b{color:#6ff0cf}
+    .gp-pr{display:block;max-width:420px;text-align:center;font-size:12.5px;line-height:1.4;color:#bfeee3}
     .gp-bal{font-size:14px;color:#d6f7ef}.gp-bal b{color:#fff}
     .gp-karta{width:100%;max-width:420px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}.gp-karta code{font:700 17px/1 "Courier New",ui-monospace,monospace;letter-spacing:.05em;color:#fff}
     .gp-karta button,.gp-msg button{padding:7px 12px;border-radius:9px;border:1px solid #6ff0cf;background:transparent;color:#fff;font-weight:700}
