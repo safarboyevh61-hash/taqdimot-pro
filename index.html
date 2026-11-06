@@ -421,6 +421,51 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 #splash .sp-bg{display:none}
 #splash .sp-phone{flex:1 1 0;width:100%;filter:drop-shadow(0 14px 28px rgba(0,0,0,.55))}
 </style>
+<style id="jonliCss">
+/* 🎬 Jonli slayd: rasmlar sekin harakatlanadi (Ken Burns), «Ko'rsatish»da matn chiqib keladi */
+.slide.jl .ph img,.slide.jl .ph video,.slide.jl img.full,.slide.jl video.full,.slide.jl img.bgimg,.slide.jl .dr-card img,.slide.jl .dr-card video,.slide.jl .dr-sp img,.slide.jl .dr-sp video{animation:jlKb0 16s ease-in-out infinite alternate;transform-origin:50% 50%;will-change:transform}
+.slide.jl[data-kb="1"] img,.slide.jl[data-kb="1"] video{animation-name:jlKb1}
+.slide.jl[data-kb="2"] img,.slide.jl[data-kb="2"] video{animation-name:jlKb2}
+@keyframes jlKb0{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.16) translate(-2.5%,-1.6%)}}
+@keyframes jlKb1{from{transform:scale(1.16) translate(2%,1.2%)}to{transform:scale(1.03) translate(0,0)}}
+@keyframes jlKb2{from{transform:scale(1.04) translate(2.2%,0)}to{transform:scale(1.15) translate(-2%,1.2%)}}
+.jl-vd{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#show .slide.jl{animation:jlSl .75s ease both}
+#show .slide.jl :is(.S-hd,.cv-t,.dr-hd,.dr-cvt){animation:jlIn .8s .1s cubic-bezier(.2,.7,.2,1) both}
+#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par){animation:jlUp .7s cubic-bezier(.2,.7,.2,1) both}
+#show .slide.jl :is(.dr-box,.dr-boxw,.dr-txt):not(:has(.dr-ri,.dr-bi,.dr-par)){animation:jlUp .8s .3s cubic-bezier(.2,.7,.2,1) both}
+#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(1){animation-delay:.35s}#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(2){animation-delay:.6s}
+#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(3){animation-delay:.85s}#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(4){animation-delay:1.1s}
+#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(5){animation-delay:1.35s}#show .slide.jl :is(.li,.card,.ti,.rj,.dr-ri,.dr-bi,.dr-pl,.dr-par):nth-child(n+6){animation-delay:1.6s}
+#show .slide.jl .ph,#show .slide.jl .dr-card{animation:jlPop .9s .25s cubic-bezier(.2,.7,.2,1) both}
+@keyframes jlSl{from{opacity:0;transform:scale(1.035)}to{opacity:1;transform:none}}
+@keyframes jlIn{from{opacity:0;transform:translateX(-2.5cqw)}to{opacity:1;transform:none}}
+@keyframes jlUp{from{opacity:0;transform:translateY(1.8cqw)}to{opacity:1;transform:none}}
+@keyframes jlPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+#stage .slide,#stage .slide *{animation:none!important}
+@media (prefers-reduced-motion:reduce){.slide.jl *{animation:none!important}}
+.jl-sw{border-color:#d0457a;background:rgba(208,69,122,.07)}.jl-sw b{color:#b02a62}.jl-sw input{accent-color:#d0457a}
+.jlsec{margin-top:16px;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;color:#fff;
+  background:radial-gradient(120% 90% at 50% 0%,#5b1f63 0%,#2a1240 55%,#120a1f 100%);border:2px solid #d0457a;box-shadow:0 10px 30px rgba(40,10,50,.35)}
+.jlsec h2{margin:0;font:800 21px/1.2 "Montserrat",system-ui,sans-serif;color:#ffd1e6;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jl-new{font:800 11px/1 "Montserrat",system-ui,sans-serif;letter-spacing:.1em;padding:5px 8px;border-radius:999px;background:#ff4f9a;color:#fff}
+.jlsec p{margin:0;font-size:14.5px;line-height:1.5;color:#f3dcf0}.jlsec b{color:#fff}
+.jl-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.07);font-size:14px;line-height:1.45;color:#f3dcf0}
+.jl-row>span{font-size:20px;line-height:1}
+.gp-j{display:block;margin-top:4px;font:600 13px/1.3 system-ui,sans-serif;color:#c9fff1}
+.jlsec>button{padding:13px;border-radius:12px;border:0;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,#ff5fa8,#d0457a);box-shadow:0 6px 18px rgba(208,69,122,.4)}
+.jlvid h2 span{color:#d0457a}.jl-p{margin:0 0 6px;font-size:14px;line-height:1.5;color:var(--ink)}
+.jl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.jl-it{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.jl-th{position:relative;aspect-ratio:16/9;background:#dde3ea;overflow:hidden}.jl-th img,.jl-th video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.jl-tx{padding:7px 9px 0;display:flex;flex-direction:column;gap:2px;min-width:0}.jl-tx b{font-size:13px;color:#12306b}.jl-tx small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jl-st{padding:7px 9px 9px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;font-weight:700}
+.jl-b{padding:7px 10px;border-radius:9px;border:0;background:linear-gradient(180deg,#ff5fa8,#d0457a);color:#fff;font-weight:800;font-size:13px}
+.jl-ok{color:#0d7a4e}.jl-run{color:#8a5a00}.jl-err{color:#b4322a;font-weight:600}
+.jl-all{width:100%;margin-top:10px;padding:12px;border-radius:12px;border:0;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(180deg,#ff5fa8,#d0457a)}
+.jl-msg{margin-top:10px;padding:10px 12px;border-radius:11px;background:rgba(208,69,122,.08);border:1px solid #e9a3c3;font-size:14px;font-weight:700;line-height:1.4}
+.jl-msg.err{background:rgba(255,90,90,.1);border-color:#ff9a9a;color:#9b1c1c}.jl-msg button{margin-top:8px;display:block}
+</style>
 </head>
 <body>
 <div id="splash" role="dialog" aria-label="Kirish ekrani">
@@ -480,7 +525,7 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 
   <section class="lock" id="lockBox" aria-live="polite"></section>
   <section class="pay gpay" id="gPay" aria-label="Google bilan to'lov" hidden>
-    <h2 class="pay-t"><small>⭐ PRO versiya · Google bilan</small>Har bir slayd beti<span class="pay-price" id="gpNarx">1&nbsp;000&nbsp;so'm</span></h2>
+    <h2 class="pay-t"><small>⭐ PRO versiya · Google bilan</small><span id="gpHd">Har bir slayd beti</span><span class="pay-price" id="gpNarx">1&nbsp;000&nbsp;so'm</span></h2>
     <div class="gp-desc">Ma'lumot va rasmlar <b>Google qidiruvidan</b> olinadi, manbalar ro'yxati bilan. Taqdimot necha betdan iborat bo'lsa, shuncha to'laysiz: 10 bet — 10&nbsp;000&nbsp;so'm, 20 bet — 20&nbsp;000&nbsp;so'm.</div>
     <div class="gp-calc"><label for="gpCount">Betlar soni</label><select id="gpCount"></select></div>
     <div class="gp-sum" id="gpSum"></div>
@@ -490,6 +535,14 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
     <button type="button" class="pay-tg" id="gpBot"><span id="gpBotT">🤖 Chekni botga yuborish</span></button>
     <div class="gp-kod"><span>🔑 Google kirish kodi</span><div><input id="gpKodIn" type="text" placeholder="G10-XXXXXX" autocomplete="off" autocapitalize="characters" aria-label="Google kirish kodi"><button type="button" id="gpKodGo">Ochish</button></div></div>
     <div class="gp-msg" id="gpMsg" hidden></div>
+  </section>
+  <section class="jlsec" id="jlSec" aria-label="Jonli slayd" hidden>
+    <h2>🎬 Jonli slayd <span class="jl-new">YANGI</span></h2>
+    <p>Slaydlaringiz <b>jonlanadi</b>: har bir slaydga mavzudagi <b>hayvon, o'simlik yoki joyning o'z rasmi</b> Google'dan topib qo'yiladi, rasmlar sekin harakatlanadi, matn chiroyli chiqib keladi.</p>
+    <div class="jl-row"><span>✨</span><div><b>Jonli slayd</b> — har bir slayd beti <b id="jlNarxG">2&nbsp;000&nbsp;so'm</b>: har slaydga o'z rasmi, rasmlar harakatlanadi (10 bet — <b id="jlNarx10">20&nbsp;000&nbsp;so'm</b>).</div></div>
+    <div class="jl-row"><span>🎥</span><div><b>Haqiqiy video</b> — tanlagan rasmingizni sun'iy intellekt jonlantiradi: hayvon qimirlaydi, barglar shamolda tebranadi. 1 ta rasm — <b id="jlNarxV">5&nbsp;000&nbsp;so'm</b>.</div></div>
+    <div class="jl-row"><span>📥</span><div><b>PowerPoint</b> faylida ham slaydlar jonli almashadi, rasmlar chiqib keladi, videolar o'zi o'ynaydi.</div></div>
+    <button type="button" id="jlGo">🎬 Jonli slayd yaratish</button>
   </section>
   <section class="panel">
     <h2 class="ttl">✨ Slayd <span>tayyorlash</span></h2>
@@ -546,6 +599,7 @@ Ta'limni moliyalashtirish"></textarea>
       <div class="filebtn"><button type="button" tabindex="-1">📷 Rasmlarni yuklash</button><input id="myImgs" type="file" accept="image/*" multiple aria-label="Slaydlar uchun rasmlar"></div>
       <div id="myImgList" class="myimg-list"></div></div>
     <label class="aisw" id="aiSwBox" hidden><input type="checkbox" id="aiSw" checked><span>⭐ <b>PRO: Google'dan qidirish</b> — sun'iy intellekt mavzu bo'yicha eng yangi ma'lumot va rasmlarni topib, slaydni tuzadi<small id="aiSwNote"></small></span></label>
+    <label class="aisw jl-sw" id="jlSwBox" hidden><input type="checkbox" id="jlSw"><span>🎬 <b>Jonli slayd</b> — har slaydga mavzudagi hayvon, o'simlik yoki joyning o'z rasmi Google'dan qo'yiladi, rasmlar harakatlanadi, xohlasangiz haqiqiy videoga aylantiriladi<small id="jlSwNote"></small></span></label>
     <button class="primary" id="go">Slayd yaratish</button>
     <div class="status" id="status" role="status"></div>
     <div id="aiChip" hidden></div>
@@ -606,6 +660,8 @@ Ta'limni moliyalashtirish"></textarea>
   </section>
 
   <section class="deck" id="deck"></section>
+
+  <section class="panel jlvid" id="jlVid" hidden></section>
 
   <section class="panel" id="dlBox" hidden>
     <h2>📥 Yuklab <span>olish</span></h2>
@@ -1685,7 +1741,7 @@ async function generate(force){
     await enrichCards(r.slides,lang,main.title);
     const myP=placeMyImgs(r.slides);
     if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
-    deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:f.others.filter(t=>t!==main.title),lang});
+    deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:f.others.filter(t=>t!==main.title),lang,jonli:false,vids:{}});
     save();render();consumeCredit(topic);
     const warn=focused?`«${topic}» bo'yicha ma'lumot ${sources.length} ta maqoladan saralab olindi. `:!force&&!f.exact?`«${topic}» mavzusi uchun ma'lumot «${main.title}» maqolasidan olindi. Boshqa maqola kerak bo'lsa, pastdagi ro'yxatdan tanlang. `:"";
     if(r.empty)setStatus(`Tayyor: ${r.slides.length} ta slayd. ${r.empty} ta reja bandi bo'yicha manbalarda ma'lumot topilmadi — o'sha slaydlarni o'zingiz to'ldiring.`,true);else setStatus(warn+(r.short&&!focused?`Manbalarda ${r.slides.length} ta slaydlik ma'lumot topildi (${sources.length} ta maqola, ${pool.length} ta rasm). Ko'proq kerak bo'lsa, «Ruscha» yoki «Inglizcha» manbani tanlang.`
@@ -1846,7 +1902,7 @@ async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(top
     r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
     const placed=placeSrcImgs(r.slides);if(placed)pool=SRC_IMGS.map(z=>z.url).concat(pool);
     const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
-    deck=Object.assign(deck,{title,slides:r.slides,sources:[],pool});save();render();consumeCredit(topic);
+    deck=Object.assign(deck,{title,slides:r.slides,sources:[],pool,jonli:false,vids:{}});save();render();consumeCredit(topic);
     setStatus(`Tayyor: ${r.slides.length} ta slayd, sizning matningiz asosida${placed?` (${placed} ta rasm PDF/skrinshotlardan)`:""}${myP?`, ${myP} ta o'z rasmingiz qo'yildi`:""}${r.empty?`. ${r.empty} ta band uchun matnda ma'lumot topilmadi — o'zingiz to'ldiring`:""}.`,!!r.empty);
     window.scrollTo({top:$("#deck").offsetTop-10,behavior:"smooth"})}
   finally{$("#fromText").disabled=false}}
@@ -2429,11 +2485,13 @@ async function buildBlob(kind){
   if(BLOBS[kind])return BLOBS[kind];
   if(kind==="pptx"&&typeof PptxGenJS==="undefined")throw new Error("PowerPoint kutubxonasi yuklanmadi. Internetni tekshiring.");
   if(kind==="pdf"&&!(window.jspdf&&window.jspdf.jsPDF))throw new Error("PDF kutubxonasi yuklanmadi. Internetni tekshiring.");
-  const shots=await captureSlides(kind==="pptx"?"PowerPoint":"PDF");
+  const JL=kind==="pptx"&&deck.jonli&&typeof jlCapture==="function";
+  const shots=JL?await jlCapture():await captureSlides(kind==="pptx"?"PowerPoint":"PDF");
   const four=deck.ratio==="4/3";dlStatus("Fayl yig'ilmoqda…");let blob;
   if(kind==="pptx"){const W=four?10:13.333,H=7.5,pp=new PptxGenJS();pp.layout=four?"LAYOUT_4x3":"LAYOUT_WIDE";pp.title=deck.title||"Taqdimot";if(deck.author)pp.author=deck.author;
-    shots.forEach(d=>pp.addSlide().addImage({data:d,x:0,y:0,w:W,h:H}));
+    if(JL)await jlAddSlides(pp,shots,W,H);else shots.forEach(d=>pp.addSlide().addImage({data:d,x:0,y:0,w:W,h:H}));
     blob=await pp.write({outputType:"blob"});
+    if(JL){dlStatus("🎬 Animatsiyalar qo'shilmoqda…");blob=await jlPptxFx(blob)}
     blob=new Blob([blob],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"})}
   else{const W=four?800:960,H=four?600:540,doc=new window.jspdf.jsPDF({orientation:"landscape",unit:"pt",format:[W,H],compress:true});
     shots.forEach((d,i)=>{if(i)doc.addPage([W,H],"landscape");doc.addImage(d,"JPEG",0,0,W,H)});
@@ -2997,10 +3055,13 @@ async function aiGenerate(topic,lang,n,planMode){
   const manual=planMode==="manual"?parsePlan($("#planText").value):null,count=+$("#planCount").value||5;
   const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,c:String(count),i:tgInit()});
   if(manual)p.set("r",JSON.stringify(manual.map(it=>({t:it.title,s:it.subs.map(x=>x.title)}))));
+  if(jlOn())p.set("j","1");window.__jlSrc=[];window.__jlN=0;
   const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 15–40 soniya)`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
   let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),170000)}finally{clearInterval(tick)}
-  if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;aiPayShow(n);aiNote();setStatus(`🔎 Google bilan ${n} betlik taqdimot — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} bet. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
+  if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;if(res.narxj)AI_NJ=+res.narxj;aiPayShow(n);aiNote();
+    setStatus(res.jonli?`🎬 Jonli slayd: ${n} bet × ${aiSom(AI_NJ)} = ${aiSom(n*AI_NJ)} (balansdan ${res.kerak||aiKerak(n)} bet). Balansingiz: ${AI_BAL} bet. To'lov qiling yoki «🎬 Jonli slayd»ni o'chirib oddiy PRO (${aiSom(AI_NG)}/bet) bilan yarating.`
+      :`🔎 Google bilan ${n} betlik taqdimot — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} bet. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
   if(!res||!res.ok||!Array.isArray(res.secs)){
     if(!res||res.why==="nokey"||res.why==="off")window.AI_NO=1;
     setStatus((res&&res.why==="ulimit"?res.msg+" ":"")+"Google'dan ma'lumot olinmadi — Vikipediyadan qidirilmoqda…");return false}
@@ -3033,28 +3094,32 @@ async function aiGenerate(topic,lang,n,planMode){
   let books=[];if(f.main){try{setStatus("📚 Adabiyotlar ro'yxati yig'ilmoqda…");books=await collectRefs(lang,main.title,sources.filter(x=>!x.lang))}catch(_){}}
   const webRefs=web.map(x=>`${x.title} — ${x.url}`).concat(imgSrc.slice(0,4).map(x=>`Rasm: ${x.title.replace(/^🖼 /,"")} — ${x.url}`)),refs=books.slice(0,Math.max(4,12-webRefs.length)).concat(webRefs).slice(0,12);
   const shown=cap(topic),r=buildPlanSlides(shown,secs,plan,planMode,pool,n,sources,refs);
+  if(jlOn()){setStatus("🎬 Har bir slaydga o'z rasmi qo'yilmoqda…");try{await jlRasmlar(r.slides,res.secs)}catch(_){}}
   if(res.xulosa&&res.xulosa.length){const xs=r.slides.find(x=>x.kind==="xulosa");if(xs)xs.bullets=res.xulosa.slice(0,Math.max(3,CH.n))}
   r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
   try{await enrichCards(r.slides,lang,main.title)}catch(_){}
   const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
-  deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:(f.others||[]).filter(t=>t!==main.title),lang});
+  deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources:sources.concat(window.__jlSrc||[]),pool,cands:(f.others||[]).filter(t=>t!==main.title),lang,jonli:jlOn(),vids:{}});
   save();render();if(res.qoldi!=null){AI_BAL=+res.qoldi;aiNote()}
-  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} bet qoldi.`:""));
+  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(deck.jonli&&window.__jlN?` 🎬 ${window.__jlN} ta slaydga o'z rasmi qo'yildi — rasmlarni videoga aylantirish uchun pastdagi «🎥 Rasmlarni jonlantirish» bo'limiga o'ting.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} bet qoldi.`:""));
   if(res.gs&&res.chip)aiChip(res.chip);
   return true}
 // 💰 Google bilan: har bir bet AI_NG so'm (bot balansidan), oddiy — AI_NW so'm
-let AI_BAL=0,AI_NG=1000,AI_NW=8000,AI_ADM=false,AI_GS=true;
+let AI_BAL=0,AI_NG=1000,AI_NW=8000,AI_ADM=false,AI_GS=true,AI_NV=5000,AI_VB=5,AI_VON=false,AI_NJ=2000;
+// 🎬 jonli slayd yoqilganmi; 1 betning narxi; balansdan yechiladigan bet soni
+const aiJ=()=>{try{return typeof jlOn==="function"&&jlOn()}catch(_){return false}},aiUP=()=>aiJ()?AI_NJ:AI_NG,aiKerak=n=>aiJ()?Math.ceil(n*AI_NJ/AI_NG):n;
 const aiSom=x=>String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm";
 function aiNote(){const nt=document.getElementById("aiSwNote"),c=document.getElementById("aiSw"),n=+(document.getElementById("count")||{}).value||10;
-  if(nt)nt.innerHTML=`💰 <b>${n} bet × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b>${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} bet</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
-  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} bet)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}
+  if(nt)nt.innerHTML=`💰 <b>${n} bet × ${aiSom(aiUP())} = ${aiSom(n*aiUP())}</b>${aiJ()?" (🎬 jonli)":""}${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} bet</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
+  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=aiKerak(n)?`${aiJ()?"🎬":"🔎"} Slayd yaratish (balansdan ${aiKerak(n)} bet)`:`${aiJ()?"🎬":"🔎"} Slayd yaratish — ${aiSom(n*aiUP())}`;else if(typeof updateGo==="function")updateGo()}
   aiGPay(n)}
 // 🔎 Google bo'limi: slayd soni, jami narx, balans
 function aiGPay(n){const nb=x=>x.replace(/ /g,"&nbsp;"),$i=id=>document.getElementById(id);if(!$i("gPay"))return;
-  $i("gpNarx").innerHTML=nb(aiSom(AI_NG));const sel=$i("gpCount");if(sel&&sel.value!==String(n))sel.value=String(n);
-  $i("gpSum").innerHTML=`${n} bet × ${nb(aiSom(AI_NG))} = <b>${nb(aiSom(n*AI_NG))}</b>`;$i("gpSum2").textContent=aiSom(n*AI_NG);
-  $i("gpBotT").textContent=`🤖 Chekni botga yuborish (${aiSom(n*AI_NG)})`;$i("gpKodIn").placeholder=`G${String(n).padStart(2,"0")}-XXXXXX`;
-  $i("gpBal").innerHTML=AI_ADM?"👨‍💻 Admin: Google cheksiz":`💼 Google balansingiz: <b>${AI_BAL} bet</b>`+(AI_BAL>=n?" — yetarli ✅":"")}
+  $i("gpNarx").innerHTML=nb(aiSom(aiUP()));if($i("gpHd"))$i("gpHd").textContent=aiJ()?"🎬 Jonli slaydning har bir beti":"Har bir slayd beti";const sel=$i("gpCount");if(sel&&sel.value!==String(n))sel.value=String(n);
+  const J=aiJ(),up=aiUP(),k=aiKerak(n);
+  $i("gpSum").innerHTML=`${J?"🎬 Jonli slayd: ":""}${n} bet × ${nb(aiSom(up))} = <b>${nb(aiSom(n*up))}</b>`+(J?`<small class="gp-j">balansga ${k} bet qo'shiladi (1 bet = ${nb(aiSom(AI_NG))})</small>`:"");$i("gpSum2").textContent=aiSom(n*up);
+  $i("gpBotT").textContent=`🤖 Chekni botga yuborish (${aiSom(n*up)})`;$i("gpKodIn").placeholder=`G${String(k).padStart(2,"0")}-XXXXXX`;
+  $i("gpBal").innerHTML=AI_ADM?"👨‍💻 Admin: Google cheksiz":`💼 Google balansingiz: <b>${AI_BAL} bet</b>`+(AI_BAL>=k?" — yetarli ✅":"")}
 function aiPayShow(n,quiet){const sec=document.getElementById("gPay");if(!sec)return;sec.hidden=false;aiGPay(n);
   if(!quiet){sec.scrollIntoView({behavior:"smooth",block:"start"});sec.classList.remove("gp-flash");void sec.offsetWidth;sec.classList.add("gp-flash")}}
 // Google kirish kodini qo'llash (bot to'lovdan keyin yuboradi): kod — slayd soniga qarab, bir marta ishlaydi
@@ -3112,7 +3177,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.
     gs.onchange=()=>{cs.value=gs.value;cs.dispatchEvent(new Event("change",{bubbles:true}))}}
    const num=((document.getElementById("payNum")||{}).textContent||"").trim(),gn=document.getElementById("gpNum");if(gn)gn.textContent=num;
    const gc=document.getElementById("gpCopy");if(gc)gc.onclick=()=>copyPlain(num.replace(/\s/g,""),gc);
-   const gb=document.getElementById("gpBot");if(gb)gb.onclick=()=>openBot("ai_"+normCode(getReq())+"_"+(+(cs||{}).value||10));
+   const gb=document.getElementById("gpBot");if(gb)gb.onclick=()=>openBot((aiJ()?"aj_":"ai_")+normCode(getReq())+"_"+(+(cs||{}).value||10));
    const tvP=document.getElementById("tvPro"),tvW=document.getElementById("tvWiki"),sw=document.getElementById("aiSw");
    const swSet=on=>{if(!sw)return;sw.checked=on;try{localStorage.setItem("tp_ai",on?"1":"0")}catch(_){}try{aiNote()}catch(_){}};
    if(tvP)tvP.onclick=()=>{swSet(true);const g=document.getElementById("gPay");if(g)g.scrollIntoView({behavior:"smooth",block:"start"})};
@@ -3122,6 +3187,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.
       if(r.bal!=null)AI_BAL=+r.bal;if(r.narxg)AI_NG=+r.narxg;if(r.narxw)AI_NW=+r.narxw;
       if(ls===null&&(AI_BAL>0||AI_ADM))c.checked=true;
       window.AI_ON=1;document.getElementById("gPay").hidden=false;
+      AI_NV=+r.narxv||5000;AI_NJ=+r.narxj||2000;AI_VB=+r.vbet||Math.ceil(AI_NV/AI_NG);AI_VON=!!r.von;try{jlBoot()}catch(_){}
       {const tv=document.getElementById("tanlov"),nb=x=>x.replace(/ /g,"&nbsp;");if(tv){tv.hidden=false;
         document.getElementById("tvNarxG").innerHTML="har bir slayd beti — "+nb(aiSom(AI_NG));document.getElementById("tvNarxW").innerHTML=nb(aiSom(AI_NW));document.getElementById("tvNarxW2").innerHTML=nb(aiSom(AI_NW))}}
       const t0=document.querySelector(".pay:not(.gpay) .pay-t small");if(t0)t0.textContent="📚 Oddiy taqdimot · Vikipediya";
@@ -3130,6 +3196,160 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.
       let gk="";try{gk=normCode(new URLSearchParams(location.search).get("gkod")||"")}catch(_){}
       if(gk&&isGKod(gk)){let done=false;try{done=sessionStorage.getItem("tp_gk_"+gk)==="1";sessionStorage.setItem("tp_gk_"+gk,"1")}catch(_){}
         if(!done)aiRedeem(gk).then(()=>document.getElementById("gPay").scrollIntoView({behavior:"smooth",block:"start"}))}}else window.AI_NO=1})})();
+
+/* ================= 🎬 JONLI SLAYD ================= */
+const VURL={}; // video id → telefon xotirasidagi havola
+const jlOn=()=>{const a=document.getElementById("jlSw"),b=document.getElementById("aiSw"),x=document.getElementById("jlSwBox");return !!(a&&a.checked&&b&&b.checked&&x&&!x.hidden)};
+function jlBoot(){
+  const box=document.getElementById("jlSwBox"),sw=document.getElementById("jlSw"),sec=document.getElementById("jlSec"),ai=document.getElementById("aiSw");if(!box||!sw)return;
+  const nb=x=>x.replace(/ /g,"&nbsp;");
+  document.getElementById("jlNarxV").innerHTML=nb(aiSom(AI_NV));document.getElementById("jlNarxG").innerHTML=nb(aiSom(AI_NJ));document.getElementById("jlNarx10").innerHTML=nb(aiSom(10*AI_NJ));
+  box.hidden=false;sec.hidden=false;
+  let ls=null;try{ls=localStorage.getItem("tp_jl");if(new URLSearchParams(location.search).get("jonli")==="1"){ls="1";localStorage.setItem("tp_jl","1")}}catch(_){}
+  sw.checked=ls==="1";if(sw.checked&&ai&&!ai.checked){ai.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}
+  const note=()=>{const n=document.getElementById("jlSwNote");if(n)n.innerHTML=sw.checked?`✅ Yoqilgan: har bir slayd beti <b>${aiSom(AI_NJ)}</b>. Slayd tayyor bo'lgach, pastda «🎥 Rasmlarni jonlantirish» bo'limi chiqadi (1 rasm — ${aiSom(AI_NV)}).`:`🎬 Jonli slayd — har bir beti ${aiSom(AI_NJ)}. 🎥 Haqiqiy video — 1 rasm ${aiSom(AI_NV)}.`};
+  sw.onchange=()=>{try{localStorage.setItem("tp_jl",sw.checked?"1":"0")}catch(_){}if(sw.checked&&ai&&!ai.checked){ai.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}note();try{aiNote()}catch(_){}};
+  if(ai)ai.addEventListener("change",()=>{if(!ai.checked&&sw.checked){sw.checked=false;try{localStorage.setItem("tp_jl","0")}catch(_){}note()}});
+  note();
+  const go=document.getElementById("jlGo");if(go)go.onclick=()=>{sw.checked=true;sw.onchange();const t=document.getElementById("topic");if(t){t.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>t.focus(),450)}};
+  // oldingi jonli taqdimot: videolarni telefondan yuklash, tayyorlanayotganlarini kuzatish
+  if(deck.jonli&&deck.vids){Object.keys(deck.vids).forEach(u=>{const v=deck.vids[u];if(v&&v.st==="ok")jlFetch(u)});jlPollStart()}
+  jlRefresh()}
+// har slaydga o'z rasmi: bot har bo'lim uchun Google'dan topgan rasmlar (secs[i].rasm) tekshirilib qo'yiladi
+async function jlRasmlar(slides,secs){
+  const S=(secs||[]).filter(x=>x&&x.head);if(!S.length)return 0;
+  const val=await Promise.all(S.map(x=>x.rasm&&x.rasm.length?aiImgs(x.rasm).catch(()=>[]):Promise.resolve([])));
+  const key=t=>String(t||"").replace(/^\s*\d+(\.\d+)*\.\s*/,"").trim().toLowerCase(),map={};
+  S.forEach((x,k)=>{map[key(x.head)]={img:x.img||"",L:val[k],R:x.rasm||[],c:0}});
+  let n=0;const src=[],used=new Set();
+  slides.forEach(s=>{if(s.type!=="content"||s.kind)return;const m=map[key(s.title)];if(!m)return;
+    if(m.img)s.subj=m.img;
+    if(m.L.length){const u=m.L[m.c%m.L.length];m.c++;const old=s.imgs||[];s.imgs=[u].concat(old.filter(x=>x!==u)).slice(0,Math.max(1,old.length));s.noimg=false;n++;
+      const o=m.R.find(x=>aiWsrv(x.u)===u);if(o&&o.p&&!used.has(o.p)){used.add(o.p);src.push({title:"🖼 "+String(o.t||o.p.replace(/^https?:\/\/(www\.)?/,"").split("/")[0]).slice(0,60),url:o.p,lang:"img"})}}});
+  window.__jlSrc=src.slice(0,12);window.__jlN=n;return n}
+// slaydlarga jonli belgisi va videolar
+function jlHydrate(root){if(!root)return;const on=!!deck.jonli;
+  root.querySelectorAll(".slide").forEach((el,k)=>{el.classList.toggle("jl",on);if(on)el.dataset.kb=String(k%3)});
+  if(!on||!deck.vids)return;
+  root.querySelectorAll("img").forEach(im=>{const v=deck.vids[im.getAttribute("src")];if(!v||!VURL[v.id])return;
+    const nx=im.nextElementSibling;if(nx&&nx.classList&&nx.classList.contains("jl-vd"))return;
+    const vd=document.createElement("video");vd.className="jl-vd";vd.src=VURL[v.id];vd.muted=true;vd.defaultMuted=true;vd.loop=true;vd.autoplay=true;vd.playsInline=true;
+    vd.setAttribute("muted","");vd.setAttribute("playsinline","");vd.setAttribute("webkit-playsinline","");im.after(vd);try{const p=vd.play();if(p&&p.catch)p.catch(()=>{})}catch(_){}})}
+{const N0=aiNote;aiNote=function(){N0.apply(this,arguments);const e=document.getElementById("jlBal");if(e)e.textContent=AI_ADM?"cheksiz (admin)":AI_BAL+" bet"}}
+{const R0=render;render=function(){R0.apply(this,arguments);try{jlHydrate(document.getElementById("deck"));jlPanel()}catch(_){}}}
+{const S0=showSlide;showSlide=function(){S0.apply(this,arguments);try{jlHydrate(document.getElementById("showSlot"))}catch(_){}}}
+function jlRefresh(){try{jlHydrate(document.getElementById("deck"));jlPanel()}catch(_){}}
+// 🎥 video bo'limi
+const jlItems=()=>deck.slides.map((s,i)=>({s,i,u:imgs(s)[0]})).filter(x=>x.u&&x.s.type==="content"&&!x.s.kind);
+function jlMsg(t,err,btn){const m=document.getElementById("jlMsg");if(!m)return;m.hidden=false;m.className="jl-msg"+(err?" err":"");m.textContent=t;if(btn)m.append(btn)}
+function jlPanel(){const box=document.getElementById("jlVid");if(!box)return;
+  if(!deck.jonli||!deck.slides.length||!window.AI_ON||!AI_VON){box.hidden=true;return}
+  const it=jlItems(),V=deck.vids||(deck.vids={}),keep=document.getElementById("jlMsg"),km=keep&&!keep.hidden?[keep.textContent,keep.className]:null;box.hidden=false;
+  const st=x=>{const v=V[x.u];if(!v)return`<button type="button" class="jl-b" data-jlv="${x.i}">🎥 Jonlantirish</button>`;
+    if(v.st==="ok")return VURL[v.id]?`<span class="jl-ok">✅ Jonli video</span>`:`<span class="jl-run">⬇ Yuklanmoqda…</span>`;
+    if(v.st==="run")return`<span class="jl-run" data-jlt="${esc(v.id)}">⏳ Tayyorlanmoqda…</span>`;
+    return`<span class="jl-err">❌ ${esc(v.m||"Xato")}</span><button type="button" class="jl-b" data-jlv="${x.i}">Qayta</button>`};
+  const left=it.filter(x=>!V[x.u]||V[x.u].st==="err");
+  box.innerHTML=`<h2>🎥 Rasmlarni <span>jonlantirish</span></h2>
+    <p class="jl-p">Tanlagan rasmingizni sun'iy intellekt haqiqiy videoga aylantiradi: hayvon qimirlaydi, barglar tebranadi. 1 ta rasm — <b>${aiSom(AI_NV)}</b> (Google balansidan ${AI_VB} bet), tayyorlash 1–3 daqiqa. 💼 Balans: <b id="jlBal">${AI_ADM?"cheksiz (admin)":AI_BAL+" bet"}</b></p>
+    ${it.length?`<div class="jl-grid">${it.map(x=>{const v=V[x.u],vu=v&&VURL[v.id];return`<div class="jl-it"><div class="jl-th">${vu?`<video src="${vu}" muted autoplay loop playsinline></video>`:`<img src="${esc(x.u)}" alt="" crossorigin="anonymous" loading="lazy">`}</div><div class="jl-tx"><b>${x.i+1}-slayd</b><small>${esc(x.s.title)}</small></div><div class="jl-st">${st(x)}</div></div>`}).join("")}</div>`:`<p class="jl-p">Slaydlarda rasm yo'q.</p>`}
+    ${left.length>1?`<button type="button" class="jl-all" id="jlAll">🎥 Hammasini jonlantirish — ${left.length} ta × ${aiSom(AI_NV)} = ${aiSom(left.length*AI_NV)}</button>`:""}
+    <div class="jl-msg" id="jlMsg" hidden></div>`;
+  box.querySelectorAll("video").forEach(v=>{v.muted=true;try{const p=v.play();if(p&&p.catch)p.catch(()=>{})}catch(_){}});
+  if(km){const m=document.getElementById("jlMsg");m.hidden=false;m.textContent=km[0];m.className=km[1]}}
+function jlPay(need){const n=Math.max(AI_VB,(need||AI_VB)-AI_BAL),b=document.createElement("button");b.type="button";b.className="jl-b";b.textContent=`💳 ${n} bet to'lash (${aiSom(n*AI_NG)})`;
+  b.onclick=()=>openBot("ai_"+normCode(getReq())+"_"+n);
+  jlMsg(`💼 Balansingiz: ${AI_BAL} bet. 1 ta jonli rasm uchun ${AI_VB} bet (${aiSom(AI_NV)}) kerak. To'lov qiling — bot Google kirish kodini yuboradi, kodni «⭐ PRO» bo'limiga yozasiz.`,true,b)}
+async function jlStart(i){const s=deck.slides[i],u=s&&imgs(s)[0];if(!u)return false;deck.vids=deck.vids||{};
+  const cur=deck.vids[u];if(cur&&(cur.st==="run"||cur.st==="ok"))return true;
+  if(!AI_ADM&&AI_BAL<AI_VB){jlPay(AI_VB);return false}
+  jlMsg(`🎥 ${i+1}-slayd rasmi Google'ga yuborilmoqda…`);
+  const q=new URLSearchParams({act:"ai",vs:"1",u,s:s.subj||"",h:String(s.title||"").slice(0,120),i:tgInit()||""});
+  const r=await aiJsonp(tgApi()+"?"+q.toString(),90000);
+  if(r&&r.ok){if(r.bal!=null)AI_BAL=+r.bal;deck.vids[u]={id:r.vid,st:r.done?"ok":"run",t:Date.now()};save();try{aiNote()}catch(_){}
+    jlMsg(`✅ ${i+1}-slayd rasmi jonlantirilmoqda (odatda 1–3 daqiqa). Sahifani yopsangiz ham bo'ladi — qayta ochganingizda video tayyor turadi.`);jlPanel();
+    if(r.done)jlFetch(u);else jlPollStart();return true}
+  if(r&&r.why==="pay"){AI_BAL=+r.bal||0;jlPay(r.need);jlPanel();return false}
+  jlMsg("❌ "+((r&&r.msg)||"Google bilan bog'lanib bo'lmadi — internetni tekshiring."),true);if(r&&r.bal!=null){AI_BAL=+r.bal;jlPanel()}return false}
+let jlTimer=null;
+function jlPollStart(){if(jlTimer)return;jlTimer=setInterval(jlPoll,8000);setTimeout(jlPoll,2500)}
+let jlBusy=false;
+async function jlPoll(){if(jlBusy)return;jlBusy=true;
+  try{const V=deck.vids||{},run=Object.keys(V).filter(u=>V[u]&&V[u].st==="run");
+    if(!run.length){clearInterval(jlTimer);jlTimer=null;return}
+    for(const u of run){const v=V[u],r=await aiJsonp(tgApi()+"?act=ai&vq="+encodeURIComponent(v.id)+"&i="+encodeURIComponent(tgInit()||""),40000);
+      if(r&&r.ok&&r.done){v.st="ok";v.n=r.n;save();jlPanel();jlFetch(u)}
+      else if(r&&r.ok){const e=document.querySelector(`[data-jlt="${v.id}"]`);if(e){const sec=r.s||Math.round((Date.now()-v.t)/1000);e.textContent=`⏳ Tayyorlanmoqda… ${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}`}}
+      else if(r&&r.why==="vid"){v.st="err";v.m=r.msg||"Video yaratilmadi";if(r.bal!=null)AI_BAL=+r.bal;save();jlPanel();try{aiNote()}catch(_){}
+        jlMsg("❌ "+v.m+(r.qaytdi?` ${r.qaytdi} bet balansingizga qaytarildi.`:""),true)}}}
+  finally{jlBusy=false}}
+const jlLoading={};
+async function jlFetch(u){const v=deck.vids&&deck.vids[u];if(!v||v.st!=="ok"||VURL[v.id]||jlLoading[v.id])return;jlLoading[v.id]=1;
+  try{let b=await jlGet(v.id);
+    if(!b){const parts=[];let k=0,n=1;
+      while(k<n){const r=await aiJsonp(tgApi()+"?act=ai&vg="+encodeURIComponent(v.id)+"&k="+k+"&i="+encodeURIComponent(tgInit()||""),90000);
+        if(!r||!r.ok||!Array.isArray(r.d)){jlMsg("⚠️ Videoni yuklab bo'lmadi — internetni tekshiring, sahifani qayta oching.",true);return}
+        n=r.n;parts.push(...r.d);k+=r.d.length||8}
+      const bin=atob(parts.join("")),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+      b=new Blob([a],{type:"video/mp4"});jlPut(v.id,b)}
+    VURL[v.id]=URL.createObjectURL(b);BLOBS={};render();
+    const it=jlItems().find(x=>x.u===u);if(it)jlMsg(`✅ ${it.i+1}-slayd jonli videosi tayyor! «▶ Ko'rsatish»ni bosib ko'ring yoki PowerPoint'ga yuklab oling.`)}
+  catch(_){}finally{delete jlLoading[v.id]}}
+// telefon xotirasi (IndexedDB): video bir marta yuklanadi
+const jlDB=()=>new Promise((res,rej)=>{try{const q=indexedDB.open("tp_jonli",1);q.onupgradeneeded=()=>q.result.createObjectStore("v");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(e){rej(e)}});
+async function jlPut(k,b){try{const db=await jlDB();await new Promise((r,j)=>{const t=db.transaction("v","readwrite");t.objectStore("v").put(b,k);t.oncomplete=r;t.onerror=()=>j(t.error)})}catch(_){}}
+async function jlGet(k){try{const db=await jlDB();return await new Promise(r=>{const q=db.transaction("v").objectStore("v").get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(_){return null}}
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-jlv],#jlAll");if(!b)return;
+  if(b.id==="jlAll"){b.disabled=true;(async()=>{const V=deck.vids||{};for(const x of jlItems()){if(V[x.u]&&V[x.u].st!=="err")continue;const ok=await jlStart(x.i);if(!ok)break}})().finally(()=>{b.disabled=false});return}
+  b.disabled=true;jlStart(+b.dataset.jlv).finally(()=>{b.disabled=false})});
+// ---- PowerPoint: rasmlar alohida qatlam (chiqib keladi), videolar o'zi o'ynaydi, slaydlar jonli almashadi ----
+function jlCrop(im,w,h,rad){try{const k=Math.min(2,1600/Math.max(w,h)),W=Math.max(1,Math.round(w*k)),H=Math.max(1,Math.round(h*k)),c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+    const r=Math.min(W,H)/2>rad*k?rad*k:0;if(r>0.5){x.beginPath();x.moveTo(r,0);x.arcTo(W,0,W,H,r);x.arcTo(W,H,0,H,r);x.arcTo(0,H,0,0,r);x.arcTo(0,0,W,0,r);x.closePath();x.clip()}
+    const iw=im.naturalWidth,ih=im.naturalHeight,fit=getComputedStyle(im).objectFit,sc=fit==="contain"?Math.min(W/iw,H/ih):Math.max(W/iw,H/ih),dw=iw*sc,dh=ih*sc;
+    if(fit==="contain"){x.fillStyle="#fff";x.fillRect(0,0,W,H)}
+    x.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);return r>0.5?c.toDataURL("image/png"):c.toDataURL("image/jpeg",.9)}catch(_){return null}}
+async function jlCapture(){
+  if(typeof html2canvas==="undefined")throw new Error("Rasmga olish kutubxonasi yuklanmadi. Internetni tekshiring.");
+  const stage=$("#stage"),out=[];
+  try{for(const[i,s]of deck.slides.entries()){
+      dlStatus(`PowerPoint (jonli) tayyorlanmoqda: ${i+1} / ${deck.slides.length}…`);
+      stage.innerHTML=slideHTML(s,i);stage.querySelectorAll("img").forEach(im=>im.loading="eager");
+      await waitImgs(stage);fitAll(stage);
+      const sl=stage.firstElementChild,R=sl.getBoundingClientRect(),overs=[];
+      for(const im of sl.querySelectorAll(".ph img,.dr-card img,.dr-sp img")){if(!im.complete||!im.naturalWidth)continue;
+        const p=im.parentElement,cs=getComputedStyle(p),bw=parseFloat(cs.borderTopWidth)||0,B=p.getBoundingClientRect();
+        const x0=B.left+bw,y0=B.top+bw,w0=B.width-2*bw,h0=B.height-2*bw;if(w0<24||h0<24)continue;
+        const d=jlCrop(im,w0,h0,Math.max(0,(parseFloat(cs.borderTopLeftRadius)||0)-bw));if(!d)continue;
+        overs.push({data:d,x:(x0-R.left)/R.width,y:(y0-R.top)/R.height,w:w0/R.width,h:h0/R.height,src:im.getAttribute("src")});im.style.visibility="hidden"}
+      const cv=await html2canvas(sl,{useCORS:true,scale:1.6,backgroundColor:"#ffffff",logging:false,scrollX:0,scrollY:-window.scrollY});
+      out.push({shot:cv.toDataURL("image/jpeg",.9),overs})}}
+  finally{stage.innerHTML=""}
+  return out}
+async function jlAddSlides(pp,shots,W,H){
+  for(const sh of shots){const sl=pp.addSlide();sl.addImage({data:sh.shot,x:0,y:0,w:W,h:H});
+    for(const o of sh.overs){const box={x:o.x*W,y:o.y*H,w:o.w*W,h:o.h*H},v=deck.vids&&deck.vids[o.src];
+      if(v&&v.st==="ok"&&VURL[v.id]){try{const b64=await blobToB64(await (await fetch(VURL[v.id])).blob());sl.addMedia(Object.assign({type:"video",data:"video/mp4;base64,"+b64,cover:o.data},box));continue}catch(_){}}
+      sl.addImage(Object.assign({data:o.data},box))}}}
+async function jlZip(){if(window.JSZip)return window.JSZip;
+  await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";sc.onload=res;sc.onerror=rej;document.head.append(sc);setTimeout(rej,25000)});
+  if(!window.JSZip)throw 0;return window.JSZip}
+// PowerPoint animatsiyasi: rasm — «Paydo bo'lish (fade)» ketma-ket, video — o'zi o'ynaydi (takrorlanadi, ovozsiz)
+function jlTiming(ov){let id=3;const N=()=>++id,sp=s=>`<p:tgtEl><p:spTgt spid="${s}"/></p:tgtEl>`;let t=0,pars="",media="";
+  ov.filter(p=>!p.vid).forEach(p=>{const a=N(),b=N(),c=N(),d=N();
+    pars+=`<p:par><p:cTn id="${a}" fill="hold"><p:stCondLst><p:cond delay="${t}"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="${b}" presetID="10" presetClass="entr" presetSubtype="0" fill="hold" nodeType="afterEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:set><p:cBhvr><p:cTn id="${c}" dur="1" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst></p:cTn>${sp(p.id)}<p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="visible"/></p:to></p:set><p:animEffect transition="in" filter="fade"><p:cBhvr><p:cTn id="${d}" dur="900"/>${sp(p.id)}</p:cBhvr></p:animEffect></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par>`;t+=900});
+  ov.filter(p=>p.vid).forEach(p=>{const a=N(),b=N(),c=N();
+    pars+=`<p:par><p:cTn id="${a}" fill="hold"><p:stCondLst><p:cond delay="${t}"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="${b}" presetID="1" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="afterEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst><p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr><p:cTn id="${c}" dur="8000" fill="hold"/>${sp(p.id)}</p:cBhvr></p:cmd></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par>`});
+  ov.filter(p=>p.vid).forEach(p=>{media+=`<p:video><p:cMediaNode vol="80000" mute="1"><p:cTn id="${N()}" repeatCount="indefinite" fill="hold" display="0"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst></p:cTn>${sp(p.id)}</p:cMediaNode></p:video>`});
+  return `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst><p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/><p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond></p:stCondLst><p:childTnLst>${pars}</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq>${media}</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>`}
+async function jlPptxFx(blob){let Z;try{Z=await jlZip()}catch(_){return blob}
+  try{const z=await Z.loadAsync(blob),TR=['<p:fade/>','<p:push dir="l"/>','<p:wipe dir="r"/>','<p:cover dir="u"/>'];
+    const names=Object.keys(z.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>+a.match(/(\d+)\.xml/)[1]-+b.match(/(\d+)\.xml/)[1]);
+    for(const[k,n]of names.entries()){let x=await z.file(n).async("string");if(/<p:transition|<p:timing/.test(x)||x.indexOf("</p:clrMapOvr>")<0)continue;
+      const pics=[...x.matchAll(/<p:pic>[\s\S]*?<\/p:pic>/g)].map(m=>({id:(m[0].match(/<p:cNvPr id="(\d+)"/)||[])[1],vid:/<a:videoFile/.test(m[0])})).filter(p=>p.id),ov=pics.slice(1);
+      x=x.replace("</p:clrMapOvr>",`</p:clrMapOvr><p:transition spd="med">${TR[k%TR.length]}</p:transition>`+(ov.length?jlTiming(ov):""));z.file(n,x)}
+    Object.keys(z.files).forEach(n=>{if(z.files[n].dir)delete z.files[n]}); // papka yozuvlarisiz (OneDrive/PowerPoint Online uchun)
+    return await z.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.presentationml.presentation",compression:"DEFLATE",compressionOptions:{level:5}})}
+  catch(_){return blob}}
 </script>
 </body>
 </html>
