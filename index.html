@@ -346,6 +346,8 @@ button.pay-tg{border:0;cursor:pointer;margin:0 auto}
 .upd-b{display:flex;gap:8px;margin-left:auto}
 .upd-b .primary{background:#ffd84a;border-color:#ffd84a;color:#0d2569;font-weight:700;padding:10px 14px}
 #updX{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;padding:10px 13px}
+#updShare{background:#2aabee;border-color:#2aabee;color:#fff;font-weight:700;padding:10px 12px}
+.upd-b{flex-wrap:wrap}
 @keyframes updIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .dr-hd span span,.sh-ttl span span{display:inline;font:inherit;-webkit-line-clamp:unset;overflow:visible;text-transform:inherit;letter-spacing:inherit}
 
@@ -440,8 +442,8 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
   </header>
   <div class="upd" id="updBox" role="status">
     <div class="upd-ic">🎉</div>
-    <div class="upd-t"><b>Yangilanish!</b> Yangi dizaynda <b>111 ta shablon</b> qo'shildi — globus, xarita, tog'lar, laboratoriya, sport, musiqa va boshqa mavzular uchun chiroyli fonlar.</div>
-    <div class="upd-b"><button type="button" class="primary" id="updGo">Shablonlarni ko'rish</button><button type="button" id="updX" aria-label="Yopish">✕</button></div>
+    <div class="upd-t"><b>Yangilanish!</b> Endi slaydlar <b>Google</b>'dan — eng yangi ma'lumot va rasmlar, manbalar ro'yxati bilan. Har slayd <b>1&nbsp;000&nbsp;so'm</b>. Do'stlaringizga ham ulashing!</div>
+    <div class="upd-b"><button type="button" class="primary" id="updGo">🔎 Sinab ko'rish</button><button type="button" id="updShare">📤 Ulashish</button><button type="button" id="updX" aria-label="Yopish">✕</button></div>
   </div>
 
 
@@ -2754,13 +2756,22 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
 <script>
 /* ---------- yangilanish xabari (har kirganda tepada; yopilsa — shu telefonda shu yangilanish uchun boshqa chiqmaydi) ---------- */
-(function(){const box=document.getElementById("updBox");if(!box)return;const KEY="tp_upd_shablon1";
+// 📤 Ulashish: Telegram'da chat/guruh/kanal tanlash oynasi (bot havolasi + tayyor reklama matni)
+function tpShare(){let ng=1000,nw=8000;try{ng=AI_NG;nw=AI_NW}catch(_){}
+  const som=x=>String(x).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm",link="https://t.me/Pro_slidesgo_bot?start=ulash";
+  const txt=`🎓 Taqdimot Pro — 1 daqiqada tayyor slayd!\n🔎 Endi ma'lumot va rasmlar Google'dan — eng yangi, manbalar ro'yxati bilan.\n✅ 111 ta shablon · PPTX va PDF · o'zbek, rus, ingliz tillarida\n💰 Google bilan har slayd ${som(ng)}, oddiy taqdimot ${som(nw)}\n🎁 Har Juma — bepul promo kodlar!\n👇 Sinab ko'ring:`;
+  const u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(txt);window.__share=u;
+  if(window.IN_TG&&IN_TG()&&window.tgOpen){tgOpen(u);return}
+  if(navigator.share){navigator.share({text:txt,url:link}).catch(()=>{});return}
+  window.open(u,"_blank")}
+(function(){const box=document.getElementById("updBox");if(!box)return;const KEY="tp_upd_google1";
   let seen=null;try{seen=localStorage.getItem(KEY)}catch(_){}
   if(seen){box.hidden=true;return}
   document.getElementById("updX").onclick=()=>{box.hidden=true;try{localStorage.setItem(KEY,"1")}catch(_){}};
-  document.getElementById("updGo").onclick=()=>{try{SH_OPEN=true;buildGallery()}catch(_){}
-    const g=document.getElementById("gallery"),s=[...g.querySelectorAll(".gsec")].find(x=>/Shablon/.test(x.textContent));
-    (s||g).scrollIntoView({behavior:"smooth",block:"start"})}})();
+  document.getElementById("updShare").onclick=()=>tpShare();
+  document.getElementById("updGo").onclick=()=>{const gp=document.getElementById("gPay"),c=document.getElementById("aiSw");
+    if(window.AI_ON&&gp&&!gp.hidden){if(c&&!c.checked){c.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}try{aiNote()}catch(_){}}gp.scrollIntoView({behavior:"smooth",block:"start"});return}
+    const t=document.getElementById("topic");if(t){t.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>t.focus(),400)}}})();
 </script>
 
 <script>
