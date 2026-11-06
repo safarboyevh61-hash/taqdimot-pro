@@ -3050,6 +3050,28 @@ function aiJsonp(url,ms){return new Promise(res=>{const cb="tpai_"+Date.now()+"_
   const fin=v=>{if(done)return;done=true;try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();res(v)};
   window[cb]=fin;s.onerror=()=>fin(undefined);s.onload=()=>setTimeout(()=>fin(undefined),60); // javob JSONP bo'lmasa (eski bot) — darhol
   s.src=url+(url.includes("?")?"&":"?")+"cb="+cb;document.head.append(s);setTimeout(()=>fin(undefined),ms)})}
+// nomlardagi HTML belgilari: <b>…</b>, &#39; …
+function tozaT(s){let x=String(s||"");const d=document.createElement("textarea");for(let k=0;k<2;k++){x=x.replace(/<[^>]*>/g,"");d.innerHTML=x;x=d.value}return x.replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim()}
+// 📚 Kitoblar: AI ro'yxati Google Books'da tekshiriladi (topilsa — aniq ma'lumot bilan), topilmagan chet el kitoblari olib tashlanadi;
+// O'zbekiston darsliklari Google Books'da kam bo'ladi — ular (3 tagacha) qoldiriladi. Kam bo'lsa — Google Books'dan mavzu bo'yicha haqiqiy kitoblar qo'shiladi.
+async function gbQ(q,n){try{const r=await fetch("https://www.googleapis.com/books/v1/volumes?printType=books&maxResults="+(n||2)+"&q="+encodeURIComponent(q),{credentials:"omit"});if(!r.ok)return[];const j=await r.json();return (j.items||[]).map(x=>x.volumeInfo||{}).filter(v=>v.title)}catch(_){return[]}}
+function kitobMatn(b){const pg={uz:"b.",ru:"с.",en:"p."}[b.l]||"b.",ct=[b.c,b.p].filter(Boolean).join(": ");
+  const au=String(b.a||"").trim().replace(/([A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ])$/,"$1.");
+  return `${au?au+" ":""}${b.t.replace(/[.]+$/,"")}.${ct||b.y?" — "+ct+(ct&&b.y?", ":"")+(b.y||"")+".":""}${b.s?" — "+b.s+" "+pg:""}`.replace(/\s+/g," ").trim()}
+const gbKey=s=>norm(String(s||"")).replace(/[^a-zа-яёўқғҳ0-9]/g,"");
+async function aiKitoblar(list,wiki,lang){const out=[],seen=new Set();
+  const add=b=>{const k=gbKey(b.t).slice(0,40);if(!k||seen.has(k))return;seen.add(k);out.push(kitobMatn(b))};
+  const fromV=(v,l)=>({a:(v.authors||[]).slice(0,4).join(", "),t:v.title+(v.subtitle?": "+v.subtitle:""),c:"",p:v.publisher||"",y:String(v.publishedDate||"").slice(0,4),s:v.pageCount?String(v.pageCount):"",l:l||({uz:"uz",ru:"ru"}[v.language]||"en")});
+  const chk=await Promise.all((list||[]).slice(0,8).map(async b=>{const sur=String(b.a||"").split(/[\s,.]+/).find(w=>w.length>2)||"";
+    const tw=String(b.t||"").split(/\s+/).slice(0,6).join(" ");const r=await gbQ(`intitle:${tw}`+(sur?` inauthor:${sur}`:""),3);
+    const v=r.find(v=>{const A=gbKey(v.title),B=gbKey(b.t);return A&&B&&(A.includes(B.slice(0,16))||B.includes(A.slice(0,16)))});return {b,v}}));
+  let uz=0;
+  chk.forEach(({b,v})=>{if(v){add({a:b.a||(v.authors||[]).slice(0,4).join(", "),t:b.t,c:b.c,p:b.p||v.publisher||"",y:b.y||String(v.publishedDate||"").slice(0,4),s:b.s||(v.pageCount?String(v.pageCount):""),l:b.l})}
+    else if(b.l==="uz"&&uz<3&&b.a&&(b.p||b.y)){uz++;add(b)}});
+  // kam bo'lsa — mavzu bo'yicha Google Books'dagi haqiqiy kitoblar (muallifi, nashriyoti va yili bor)
+  for(const q of (wiki||[]).slice(0,2)){if(out.length>=6)break;
+    const r=await gbQ(`"${q}"`,6);r.filter(v=>(v.authors||[]).length&&v.publisher&&v.publishedDate).slice(0,6-out.length).forEach(v=>add(fromV(v)))}
+  return out}
 // Google slayd so'rovi: avval JSONP; o'qilmasa — oddiy so'rov (javob matnini o'qib, JSON qilib olamiz yoki xato sababini ko'rsatamiz)
 async function aiGet(url,ms){const t0=Date.now();window.__aiRaw="";let r=await aiJsonp(url,ms);if(r)return r;
   const left=ms-(Date.now()-t0);if(left<5000){window.__aiRaw="vaqt tugadi";return undefined}
@@ -3114,16 +3136,20 @@ async function aiGenerate(topic,lang,n,planMode){
   pool=[...new Set(gPool.concat(pool))];
   if(deck.uni&&!deck.uniUp&&!deck.uniImg){try{setStatus("Universitet rasmi qidirilmoqda…");await lookupUni()}catch(_){}}
   CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
-  const web=(res.src||[]).filter(x=>x&&/^https?:\/\//.test(x.url||"")).map(x=>({title:String(x.title||x.url).slice(0,120),url:x.url,lang:"web"}));
+  const web=(res.src||[]).filter(x=>x&&/^https?:\/\//.test(x.url||"")).map(x=>({title:tozaT(x.title||x.url).slice(0,120),url:x.url,lang:"web"}));
   // Google rasmlari manbasi: har bir rasm turgan sahifaga bir bosishda o'tiladi (Google talabi)
   const usedG=new Set(gPool),imgSrc=[];
   (res.img||[]).forEach(x=>{if(x&&x.p&&/^https?:\/\//.test(x.p)&&usedG.has(aiWsrv(x.u))&&!imgSrc.some(y=>y.url===x.p)&&!web.some(y=>y.url===x.p))
-    imgSrc.push({title:"🖼 "+String(x.t||x.p.replace(/^https?:\/\/(www\.)?/,"").split("/")[0]).slice(0,60),url:x.p,lang:"img"})});
+    imgSrc.push({title:"🖼 "+tozaT(x.t||x.p.replace(/^https?:\/\/(www\.)?/,"").split("/")[0]).slice(0,60),url:x.p,lang:"img"})});
   const sources=web.concat(imgSrc.slice(0,10));
   if(!res.gs)sources.push({title:"Google Gemini (sun'iy intellekt)",url:"https://gemini.google.com",lang:"web"});
   if(f.main)sources.push({title:main.title,url:wikiUrl(lang,main.title)});
   let books=[];if(f.main){try{setStatus("📚 Adabiyotlar ro'yxati yig'ilmoqda…");books=await collectRefs(lang,main.title,sources.filter(x=>!x.lang))}catch(_){}}
-  const webRefs=web.map(x=>`${x.title} — ${x.url}`).concat(imgSrc.slice(0,4).map(x=>`Rasm: ${x.title.replace(/^🖼 /,"")} — ${x.url}`)),refs=books.slice(0,Math.max(4,12-webRefs.length)).concat(webRefs).slice(0,12);
+  // 📚 adabiyotlar: AI topgan haqiqiy kitoblar (Google Books bilan tekshiriladi) + Vikipediyadagi kitoblar + 3 tagacha internet manba (rasm sahifalari yozilmaydi)
+  let kit=[];try{setStatus("📚 Kitoblar Google Books'da tekshirilmoqda…");kit=await aiKitoblar(res.kitob||[],res.wiki||[],lang)}catch(_){}
+  const kk=new Set(kit.map(b=>norm(b).slice(0,30)));books=books.filter(b=>!kk.has(norm(b).slice(0,30)));
+  const webRefs=web.slice(0,3).map(x=>`${tozaT(x.title)}. [Elektron resurs]. — ${x.url}`),bookAll=kit.concat(books),
+    refs=bookAll.slice(0,Math.max(5,10-webRefs.length)).concat(webRefs).slice(0,10);
   const shown=cap(topic),r=buildPlanSlides(shown,secs,plan,planMode,pool,n,sources,refs);
   if(jlOn()){setStatus("🎬 Har bir slaydga o'z rasmi qo'yilmoqda…");try{await jlRasmlar(r.slides,res.secs)}catch(_){}}
   if(res.xulosa&&res.xulosa.length){const xs=r.slides.find(x=>x.kind==="xulosa");if(xs)xs.bullets=res.xulosa.slice(0,Math.max(3,CH.n))}
@@ -3158,7 +3184,7 @@ function aiGDev(){const sec=document.getElementById("gPay"),box=document.getElem
   const adm=!!AI_ADM,dev=aiDev();sec.classList.toggle("gp-free",adm);
   if(!adm&&!dev){box.hidden=true;return}
   const ok=v=>v?"✅":"⚠️",old=AI_VER==="eski"||!AI_VON;
-  const diag=`🌐 Sayt: v22 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
+  const diag=`🌐 Sayt: v23 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
   box.hidden=false;
   if(adm){box.innerHTML=`<b>👨‍💻 Dasturchi rejimi</b><p>Google va 🎬 Jonli slayd siz uchun <b>ochiq — bepul va cheksiz</b>. To'lov shart emas.</p>
     <div class="gp-dev-b"><button type="button" data-gdev="g">🔎 Google bilan slayd yaratish</button><button type="button" data-gdev="j">🎬 Jonli slayd yaratish</button></div>
