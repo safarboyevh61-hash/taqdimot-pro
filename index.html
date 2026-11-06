@@ -456,6 +456,8 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 .jl-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.07);font-size:14px;line-height:1.45;color:#f3dcf0}
 .jl-row>span{font-size:20px;line-height:1}
 .gp-j{display:block;margin-top:4px;font:600 13px/1.3 system-ui,sans-serif;color:#c9fff1}
+.ai-fail{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ai-fail button{padding:9px 13px;border-radius:10px;border:0;font-weight:800;font-size:14px;color:#fff;background:linear-gradient(180deg,#3b7cf0,#2a50b8)}
+.ai-fail button[data-aif="w"]{background:#fff;color:#2a50b8;border:1.5px solid #5a8dee}
 .gpay.gp-free :is(.gp-karta,.pay-note,#gpBot,.gp-kod,#gpSum,.gp-desc){display:none!important}
 .gp-dev{width:100%;max-width:420px;padding:12px 13px;border-radius:13px;background:rgba(111,240,207,.13);border:1.5px solid #6ff0cf;display:flex;flex-direction:column;gap:8px;text-align:left}
 .gp-dev>b{font-size:16px;color:#6ff0cf}.gp-dev p{margin:0;font-size:14px;line-height:1.45;color:#e6fff8}.gp-dev small{font-size:12.5px;color:#bfeee2;line-height:1.4}
@@ -1650,13 +1652,13 @@ function needCode(){renderLock();$("#lockBox").scrollIntoView({behavior:"smooth"
 
 async function generate(force){
   const topic=$("#topic").value.trim(),lang=$("#lang").value,n=+$("#count").value;if(!topic&&!force){setStatus("Avval mavzuni yozing.",true);return}
-  const viaAI=!force&&window.aiWant&&aiWant();
+  const viaAI=!force&&!window.__noAI&&window.aiWant&&aiWant();window.__noAI=0;
   if(!viaAI&&!canCreate(topic)){needCode();return}
   const planMode=$("#planType").value;if(planMode==="manual"&&!parsePlan($("#planText").value).length){setStatus("Rejangizni yozing: har bir bandni yangi qatorga.",true);$("#planText").focus();return}
   $("#go").disabled=true;setStatus("Mavzuga mos maqola qidirilmoqda…");if(window.aiChip)aiChip("");
   try{
     if(viaAI){const ar=await aiGenerate(topic,lang,n,planMode);if(ar)return;
-      if(!canCreate(topic)){setStatus("Google'dan javob kelmadi — balansingizdan hech narsa yechilmadi. Birozdan keyin qayta urinib ko'ring.",true);return}}
+      aiFail(window.__aiErr||"Google javob bermadi.");return}
     const f=await findMain(lang,force||topic);
     const mainTitle=force||f.main;
     if(!mainTitle){setStatus("Bu mavzu bo'yicha maqola topilmadi. Boshqacha yozib ko'ring yoki tilni o'zgartiring.",true);return}
@@ -3065,15 +3067,17 @@ async function aiGenerate(topic,lang,n,planMode){
   const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,c:String(count),i:tgInit()});
   if(manual)p.set("r",JSON.stringify(manual.map(it=>({t:it.title,s:it.subs.map(x=>x.title)}))));
   if(jlOn())p.set("j","1");window.__jlSrc=[];window.__jlN=0;
-  const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 15–40 soniya)`;
+  const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 20–90 soniya)`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
-  let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),170000)}finally{clearInterval(tick)}
+  let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),300000)}finally{clearInterval(tick)}window.__aiErr="";
   if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;if(res.narxj)AI_NJ=+res.narxj;aiPayShow(n);aiNote();
     setStatus(res.jonli?`🎬 Jonli slayd: ${n} bet × ${aiSom(AI_NJ)} = ${aiSom(n*AI_NJ)} (balansdan ${res.kerak||aiKerak(n)} bet). Balansingiz: ${AI_BAL} bet. To'lov qiling yoki «🎬 Jonli slayd»ni o'chirib oddiy PRO (${aiSom(AI_NG)}/bet) bilan yarating.`
       :`🔎 Google bilan ${n} betlik taqdimot — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} bet. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
   if(!res||!res.ok||!Array.isArray(res.secs)){
-    if(!res||res.why==="nokey"||res.why==="off")window.AI_NO=1;
-    setStatus((res&&res.why==="ulimit"?res.msg+" ":"")+"Google'dan ma'lumot olinmadi — Vikipediyadan qidirilmoqda…");return false}
+    if(res&&(res.why==="nokey"||res.why==="off"))window.AI_NO=1;
+    const W={nokey:"botda Google kaliti yo'q",off:"Google rejimi o'chirilgan (botga /ai on yozing)",tg:"Telegram tasdiqlamadi — ilovani botdagi tugma orqali qayta oching",glimit:"bugungi umumiy limit tugadi",topic:"mavzu juda qisqa",plan:"reja noto'g'ri"};
+    window.__aiErr=!res?`Google ${Math.round((Date.now()-t0)/1000)} soniyada javob bermadi yoki bot bilan aloqa uzildi. Internetni tekshirib, qayta urinib ko'ring.`:(res.msg||W[res.why]||res.why||"noma'lum xato");
+    return false}
   CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
   const S=res.secs.filter(x=>x&&x.head).map(x=>({head:String(x.head),sents:(x.sents||[]).map(String),subs:(x.subs||[]).map(y=>({head:String(y.head||""),sents:(y.sents||[]).map(String)}))}));
   const all=x=>x.sents.concat(...x.subs.map(y=>y.sents));
@@ -3081,7 +3085,7 @@ async function aiGenerate(topic,lang,n,planMode){
   if(manual)plan=manual.map((it,i)=>{const a=S[i]||{sents:[],subs:[]};
     return{title:it.title,sents:it.subs.length?a.sents.slice():all(a),subs:it.subs.map((sb,j)=>({title:sb.title,sents:((a.subs[j]||{}).sents||[]).slice()}))}});
   else plan=S.filter(x=>all(x).length).map(x=>({title:x.head,short:x.head,sents:all(x),subs:[]}));
-  if(plan.filter(it=>it.sents.length||it.subs.some(sb=>sb.sents.length)).length<2){setStatus("Google javobi yetarli emas — Vikipediyadan qidirilmoqda…");return false}
+  if(plan.filter(it=>it.sents.length||it.subs.some(sb=>sb.sents.length)).length<2){window.__aiErr="Google javobi yetarli emas (bo'limlar kam). Mavzuni boshqacha yozib ko'ring.";return false}
   const secs=S.map(x=>({head:x.head,sents:all(x),src:"ai"})).filter(x=>x.sents.length);
   // rasmlar va kitoblar — Vikipediyadan (topilmasa ham slaydlar tayyor bo'ladi)
   let main={title:topic},f={others:[]};
@@ -3147,6 +3151,11 @@ document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.targ
   if(ai){ai.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}
   if(jl&&!document.getElementById("jlSwBox").hidden){jl.checked=J;if(jl.onchange)jl.onchange()}
   try{aiNote()}catch(_){}const t=document.getElementById("topic");if(t){t.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>t.focus(),450)}});
+function aiFail(why){setStatus(`❌ Google'dan ma'lumot olinmadi. Sabab: ${why} Balansingizdan hech narsa yechilmadi.`,true);
+  const st=document.getElementById("status");if(!st)return;const d=document.createElement("div");d.className="ai-fail";
+  d.innerHTML=`<button type="button" data-aif="r">🔄 Qayta urinish</button><button type="button" data-aif="w">📚 Vikipediyadan yaratish</button>`;st.append(d)}
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("[data-aif]");if(!b)return;
+  if(b.dataset.aif==="w")window.__noAI=1;try{generate()}catch(_){}});
 function aiPayShow(n,quiet){const sec=document.getElementById("gPay");if(!sec)return;sec.hidden=false;aiGPay(n);
   if(!quiet){sec.scrollIntoView({behavior:"smooth",block:"start"});sec.classList.remove("gp-flash");void sec.offsetWidth;sec.classList.add("gp-flash")}}
 // Google kirish kodini qo'llash (bot to'lovdan keyin yuboradi): kod — slayd soniga qarab, bir marta ishlaydi
