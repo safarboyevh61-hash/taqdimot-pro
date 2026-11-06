@@ -286,6 +286,10 @@ button.pay-tg{border:0;cursor:pointer;margin:0 auto}
 .pastebox:focus{border-style:solid;background:var(--panel)}
 .pastebox.busy{opacity:.6}
 
+.aisw{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:0 0 10px;border:2px solid #2a64e0;border-radius:12px;background:rgba(42,100,224,.08);font-size:14px;line-height:1.35;cursor:pointer;text-transform:none;letter-spacing:normal;color:var(--ink);font-weight:400}
+.aisw b{color:#1d3fb8}
+.aisw input{width:22px;height:22px;flex:none;margin:1px 0 0;accent-color:#2a64e0}.aisw small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+#aiChip{margin-top:8px}#aiChip .aichip-l{font-size:12.5px;color:var(--muted);margin-bottom:2px}#aiChip iframe{width:100%;height:66px;border:0;display:block;background:transparent}
 .src-box{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
 .src-box small{color:var(--muted);font-size:13px}
 .src-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
@@ -513,8 +517,10 @@ Ta'limni moliyalashtirish"></textarea>
       <small>Xohlasangiz, rasmlarni slaydga o'zingiz tanlab qo'yishingiz mumkin. Nechta rasm bo'lsa ham yuklang — men ularni har bir reja bandiga moslab qo'yib beraman.</small>
       <div class="filebtn"><button type="button" tabindex="-1">📷 Rasmlarni yuklash</button><input id="myImgs" type="file" accept="image/*" multiple aria-label="Slaydlar uchun rasmlar"></div>
       <div id="myImgList" class="myimg-list"></div></div>
+    <label class="aisw" id="aiSwBox" hidden><input type="checkbox" id="aiSw" checked><span>🔎 <b>Google'dan qidirish</b> — sun'iy intellekt mavzu bo'yicha eng yangi ma'lumot va rasmlarni topib, slaydni tuzadi<small id="aiSwNote"></small></span></label>
     <button class="primary" id="go">Slayd yaratish</button>
     <div class="status" id="status" role="status"></div>
+    <div id="aiChip" hidden></div>
     <div class="src-box">
       <span class="lbl">Ma'lumot qayerdan olinsin? (4 usul)</span>
       <div class="src-tabs" role="tablist">
@@ -1552,8 +1558,9 @@ async function generate(force){
   const topic=$("#topic").value.trim(),lang=$("#lang").value,n=+$("#count").value;if(!topic&&!force){setStatus("Avval mavzuni yozing.",true);return}
   if(!canCreate(topic)){needCode();return}
   const planMode=$("#planType").value;if(planMode==="manual"&&!parsePlan($("#planText").value).length){setStatus("Rejangizni yozing: har bir bandni yangi qatorga.",true);$("#planText").focus();return}
-  $("#go").disabled=true;setStatus("Mavzuga mos maqola qidirilmoqda…");
+  $("#go").disabled=true;setStatus("Mavzuga mos maqola qidirilmoqda…");if(window.aiChip)aiChip("");
   try{
+    if(!force&&window.aiWant&&aiWant()&&await aiGenerate(topic,lang,n,planMode))return;
     const f=await findMain(lang,force||topic);
     const mainTitle=force||f.main;
     if(!mainTitle){setStatus("Bu mavzu bo'yicha maqola topilmadi. Boshqacha yozib ko'ring yoki tilni o'zgartiring.",true);return}
@@ -2925,6 +2932,77 @@ window.addEventListener("load",()=>{setTimeout(()=>{try{
     const t=document.getElementById("topic");if(t)t.scrollIntoView({behavior:"smooth",block:"center"})}
   else{const i=document.getElementById("accIn");if(i)i.value=kod;setStatus("Kod bu qurilmadagi so'rov kodiga mos kelmadi. Kodni so'rov kodini olgan joyingizda kiriting.",true)}
 }catch(_){}},500)});
+</script>
+<script>
+/* ===== 🔎 Google qidiruv (Gemini) — bot orqali: ma'lumot Google'dan, rasmlar Vikipediyadan ===== */
+function aiAvail(){try{return !!(tgApi()&&tgInit())}catch(_){return false}}
+function aiWant(){const b=document.getElementById("aiSw");return aiAvail()&&!window.AI_NO&&(!b||b.checked)}
+function aiJsonp(url,ms){return new Promise(res=>{const cb="tpai_"+Date.now()+"_"+Math.floor(Math.random()*1e6),s=document.createElement("script");let done=false;
+  const fin=v=>{if(done)return;done=true;try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();res(v)};
+  window[cb]=fin;s.onerror=()=>fin(undefined);s.onload=()=>setTimeout(()=>fin(undefined),60); // javob JSONP bo'lmasa (eski bot) — darhol
+  s.src=url+(url.includes("?")?"&":"?")+"cb="+cb;document.head.append(s);setTimeout(()=>fin(undefined),ms)})}
+// Google qidiruv takliflari (Google talabi: qidiruv natijasidan foydalanilganda ko'rsatiladi)
+function aiChip(html){const box=document.getElementById("aiChip");if(!box)return;if(!html){box.hidden=true;box.innerHTML="";return}
+  box.hidden=false;box.innerHTML='<div class="aichip-l">Google qidiruv takliflari:</div>';const f=document.createElement("iframe");
+  f.setAttribute("sandbox","allow-popups allow-popups-to-escape-sandbox");f.title="Google qidiruv takliflari";f.srcdoc='<base target="_blank"><style>body{margin:0}</style>'+html;box.append(f)}
+// Google topgan saytlardagi rasmlar: wsrv.nl orqali (CORS — PPTX/PDF'ga tushishi uchun, kichraytirilgan), kichik/bo'sh rasmlar olinmaydi
+const aiWsrv=u=>"https://wsrv.nl/?url="+encodeURIComponent(u)+"&w=1200&h=1200&fit=inside&we&output=jpg&q=85";
+function aiImgs(list){return Promise.all((list||[]).slice(0,18).map(x=>new Promise(res=>{const u=aiWsrv(x.u||x),im=new Image();im.crossOrigin="anonymous";let d=false;
+  const fin=v=>{if(!d){d=true;res(v)}};setTimeout(()=>fin(null),10000);im.onerror=()=>fin(null);
+  im.onload=()=>{const w=im.naturalWidth,h=im.naturalHeight,r=w/h;if(w<400||h<260||r<.6||r>2.4)return fin(null);
+    try{const W=32,H=24,cn=document.createElement("canvas");cn.width=W;cn.height=H;const c=cn.getContext("2d");c.drawImage(im,0,0,W,H);const px=c.getImageData(0,0,W,H).data;
+      let s=0,s2=0;for(let i=0;i<px.length;i+=4){const y=.3*px[i]+.59*px[i+1]+.11*px[i+2];s+=y;s2+=y*y}const n=px.length/4,sd=Math.sqrt(Math.max(0,s2/n-(s/n)**2));
+      fin(sd<8?null:u)}catch(_){fin(u)}};im.src=u}))).then(a=>[...new Set(a.filter(Boolean))])}
+async function aiGenerate(topic,lang,n,planMode){
+  const manual=planMode==="manual"?parsePlan($("#planText").value):null,count=+$("#planCount").value||5;
+  const p=new URLSearchParams({act:"ai",t:topic,l:lang,n:String(n),m:planMode,c:String(count),i:tgInit()});
+  if(manual)p.set("r",JSON.stringify(manual.map(it=>({t:it.title,s:it.subs.map(x=>x.title)}))));
+  const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 15–40 soniya)`;
+  setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
+  let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),170000)}finally{clearInterval(tick)}
+  if(!res||!res.ok||!Array.isArray(res.secs)){
+    if(!res||res.why==="nokey"||res.why==="off")window.AI_NO=1;
+    setStatus((res&&res.why==="ulimit"?res.msg+" ":"")+"Google'dan ma'lumot olinmadi — Vikipediyadan qidirilmoqda…");return false}
+  CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
+  const S=res.secs.filter(x=>x&&x.head).map(x=>({head:String(x.head),sents:(x.sents||[]).map(String),subs:(x.subs||[]).map(y=>({head:String(y.head||""),sents:(y.sents||[]).map(String)}))}));
+  const all=x=>x.sents.concat(...x.subs.map(y=>y.sents));
+  let plan;
+  if(manual)plan=manual.map((it,i)=>{const a=S[i]||{sents:[],subs:[]};
+    return{title:it.title,sents:it.subs.length?a.sents.slice():all(a),subs:it.subs.map((sb,j)=>({title:sb.title,sents:((a.subs[j]||{}).sents||[]).slice()}))}});
+  else plan=S.filter(x=>all(x).length).map(x=>({title:x.head,short:x.head,sents:all(x),subs:[]}));
+  if(plan.filter(it=>it.sents.length||it.subs.some(sb=>sb.sents.length)).length<2){setStatus("Google javobi yetarli emas — Vikipediyadan qidirilmoqda…");return false}
+  const secs=S.map(x=>({head:x.head,sents:all(x),src:"ai"})).filter(x=>x.sents.length);
+  // rasmlar va kitoblar — Vikipediyadan (topilmasa ham slaydlar tayyor bo'ladi)
+  let main={title:topic},f={others:[]};
+  try{setStatus("🖼 Mavzuga oid rasmlar qidirilmoqda…");f=await findMain(lang,topic)||{others:[]};if(f.main)main=await article(lang,f.main)}catch(_){f={others:[]}}
+  if(!main||!main.title)main={title:topic};
+  let gPool=[];if((res.img||[]).length){setStatus(`🖼 Google topgan rasmlar tekshirilmoqda (${res.img.length} ta)…`);try{gPool=await aiImgs(res.img)}catch(_){}}
+  let pool=[];try{setStatus("🖼 Rasmlar yig'ilmoqda…");pool=await collectImages(lang,main,[],n,(res.wiki||[]).map(t=>({lang:"en",title:t})))}catch(_){}
+  pool=[...new Set(gPool.concat(pool))];
+  if(deck.uni&&!deck.uniUp&&!deck.uniImg){try{setStatus("Universitet rasmi qidirilmoqda…");await lookupUni()}catch(_){}}
+  CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
+  const web=(res.src||[]).filter(x=>x&&/^https?:\/\//.test(x.url||"")).map(x=>({title:String(x.title||x.url).slice(0,120),url:x.url,lang:"web"}));
+  const sources=web.slice();
+  if(!res.gs)sources.push({title:"Google Gemini (sun'iy intellekt)",url:"https://gemini.google.com",lang:"web"});
+  if(f.main)sources.push({title:main.title,url:wikiUrl(lang,main.title)});
+  let books=[];if(f.main){try{setStatus("📚 Adabiyotlar ro'yxati yig'ilmoqda…");books=await collectRefs(lang,main.title,sources.filter(x=>!x.lang))}catch(_){}}
+  const webRefs=web.map(x=>`${x.title} — ${x.url}`),refs=books.slice(0,Math.max(4,10-webRefs.length)).concat(webRefs).slice(0,10);
+  const shown=cap(topic),r=buildPlanSlides(shown,secs,plan,planMode,pool,n,sources,refs);
+  if(res.xulosa&&res.xulosa.length){const xs=r.slides.find(x=>x.kind==="xulosa");if(xs)xs.bullets=res.xulosa.slice(0,Math.max(3,CH.n))}
+  r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
+  try{await enrichCards(r.slides,lang,main.title)}catch(_){}
+  const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
+  deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:(f.others||[]).filter(t=>t!==main.title),lang});
+  save();render();consumeCredit(topic);
+  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:""));
+  if(res.gs&&res.chip)aiChip(res.chip);
+  return true}
+// botda Google kaliti bo'lsa — tanlov ko'rinadi
+(function(){const b=document.getElementById("aiSwBox"),c=document.getElementById("aiSw");if(!b||!c||!aiAvail())return;
+  try{if(localStorage.getItem("tp_ai")==="0")c.checked=false}catch(_){}
+  c.onchange=()=>{try{localStorage.setItem("tp_ai",c.checked?"1":"0")}catch(_){}};
+  aiJsonp(tgApi()+"?act=ai&ping=1",20000).then(r=>{if(r&&r.ok){b.hidden=false;const nt=document.getElementById("aiSwNote");
+    if(nt)nt.textContent=r.gs?"Rasmlar ham Google topgan saytlardan olinadi, manbalar ro'yxati qo'shiladi. O'chirsangiz — Vikipediyadan.":"Rasmlar Vikipediyadan olinadi. O'chirsangiz — matn ham Vikipediyadan."}else window.AI_NO=1})})();
 </script>
 </body>
 </html>
