@@ -463,6 +463,18 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
   </section>
 
   <section class="lock" id="lockBox" aria-live="polite"></section>
+  <section class="pay gpay" id="gPay" aria-label="Google bilan to'lov" hidden>
+    <h2 class="pay-t"><small>🔎 Google bilan taqdimot</small>Har slayd<span class="pay-price" id="gpNarx">1&nbsp;000&nbsp;so'm</span></h2>
+    <div class="gp-desc">Ma'lumot va rasmlar <b>Google qidiruvidan</b> olinadi, manbalar ro'yxati bilan. Nechta slayd bo'lsa, shuncha to'laysiz.</div>
+    <div class="gp-calc"><label for="gpCount">Slaydlar soni</label><select id="gpCount"></select></div>
+    <div class="gp-sum" id="gpSum"></div>
+    <div class="gp-bal" id="gpBal"></div>
+    <div class="gp-karta"><span>💳 Karta</span><code id="gpNum"></code><button type="button" id="gpCopy">Nusxa</button></div>
+    <div class="pay-note">1) Kartaga <b id="gpSum2"></b> o'tkazing. 2) <b>«🤖 Chekni botga yuborish»</b>ni bosing va chekni yuboring. 3) To'lov tasdiqlangach, bot <b>Google kirish kodi</b>ni yuboradi — kodni pastga yozing.</div>
+    <button type="button" class="pay-tg" id="gpBot"><span id="gpBotT">🤖 Chekni botga yuborish</span></button>
+    <div class="gp-kod"><span>🔑 Google kirish kodi</span><div><input id="gpKodIn" type="text" placeholder="G10-XXXXXX" autocomplete="off" autocapitalize="characters" aria-label="Google kirish kodi"><button type="button" id="gpKodGo">Ochish</button></div></div>
+    <div class="gp-msg" id="gpMsg" hidden></div>
+  </section>
   <section class="panel">
     <h2 class="ttl">✨ Slayd <span>tayyorlash</span></h2>
     <div class="field"><label for="topic">Mavzu</label>
@@ -1529,7 +1541,7 @@ function renderLock(){
     $("#devExit").onclick=()=>{lsSet("tp_dev",null);renderLock()};updateGo();return}
   if(isUnlim()){box.className="lock open";box.innerHTML=`<h2>✅ Cheksiz kirish ochiq</h2><div class="ok">Promo kod faollashtirilgan: taqdimotlarni cheksiz yaratishingiz mumkin.</div>`;updateGo();return}
   if(hasCredit()){box.className="lock open";box.innerHTML=`<h2>✅ Kirish ochiq</h2><div class="ok">Kod qabul qilindi. Endi 1 ta taqdimot yaratishingiz mumkin.</div>`;updateGo();return}
-  const req=getReq();box.className="lock";box.innerHTML=`<h2>🔒 Slayd yaratish yopiq</h2>
+  const req=getReq();box.className="lock";box.innerHTML=`<h2>${window.AI_ON?"🔒 📚 Oddiy slayd (Vikipediya) — yopiq":"🔒 Slayd yaratish yopiq"}</h2>
     <p>1) Kartaga 8 000 so'm o'tkazing. 2) <b>«🤖 Chekni botga yuborish»</b>ni bosing va chek skrinshotini botga yuboring. 3) To'lov tasdiqlangach, bot <b>kirish kodini</b> o'zi yuboradi.</p>
     <div class="req"><span>So'rov kodingiz:</span><code id="reqCode">${req}</code><button type="button" id="reqCopy">Nusxa olish</button></div>
     <button type="button" class="pay-tg" id="lockBot">🤖 Chekni botga yuborish</button>
@@ -3010,20 +3022,30 @@ let AI_BAL=0,AI_NG=1000,AI_NW=8000,AI_ADM=false,AI_GS=true;
 const aiSom=x=>String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm";
 function aiNote(){const nt=document.getElementById("aiSwNote"),c=document.getElementById("aiSw"),n=+(document.getElementById("count")||{}).value||10;
   if(nt)nt.innerHTML=`💰 <b>${n} slayd × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b>${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} slayd</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
-  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} slayd)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}}
-function aiPayShow(n){const box=document.getElementById("aiPay");if(!box)return;
-  const num=((document.getElementById("payNum")||{}).textContent||"").trim(),req=getReq(),need=Math.max(n,n-AI_BAL);
-  box.hidden=false;box.innerHTML=`<div class="aipay"><h3>🔎 Google bilan slayd — to'lov</h3>
-    <p>📊 <b>${n} ta slayd × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b><br>💼 Balansingizda: <b>${AI_BAL} slayd</b></p>
-    ${num?`<div class="aipay-k"><span>💳 Karta:</span><code>${num}</code><button type="button" id="aiPayCopy">Nusxa</button></div>`:""}
-    <ol><li>Kartaga <b>${aiSom(n*AI_NG)}</b> o'tkazing.</li><li><b>«🤖 Chekni botga yuborish»</b>ni bosing va chek skrinshotini botga yuboring.</li><li>To'lov tasdiqlangach, balansingizga <b>${n} slayd</b> qo'shiladi — shu yerda «Slayd yaratish»ni qayta bosing.</li></ol>
-    <div class="req"><span>So'rov kodingiz:</span><code>${req}</code></div>
-    <button type="button" class="pay-tg" id="aiPayBot">🤖 Chekni botga yuborish (${aiSom(n*AI_NG)})</button>
-    <button type="button" class="aipay-w" id="aiPayWiki">📚 Oddiy slayd (Vikipediya) — ${aiSom(AI_NW)}</button></div>`;
-  const cp=document.getElementById("aiPayCopy");if(cp)cp.onclick=()=>copyPlain(num.replace(/\s/g,""),cp);
-  document.getElementById("aiPayBot").onclick=()=>openBot("ai_"+normCode(req)+"_"+n);
-  document.getElementById("aiPayWiki").onclick=()=>{const c=document.getElementById("aiSw");if(c){c.checked=false;try{localStorage.setItem("tp_ai","0")}catch(_){}}box.hidden=true;aiNote();generate()};
-  box.scrollIntoView({behavior:"smooth",block:"center"})}
+  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} slayd)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}
+  aiGPay(n)}
+// 🔎 Google bo'limi: slayd soni, jami narx, balans
+function aiGPay(n){const nb=x=>x.replace(/ /g,"&nbsp;"),$i=id=>document.getElementById(id);if(!$i("gPay"))return;
+  $i("gpNarx").innerHTML=nb(aiSom(AI_NG));const sel=$i("gpCount");if(sel&&sel.value!==String(n))sel.value=String(n);
+  $i("gpSum").innerHTML=`${n} slayd × ${nb(aiSom(AI_NG))} = <b>${nb(aiSom(n*AI_NG))}</b>`;$i("gpSum2").textContent=aiSom(n*AI_NG);
+  $i("gpBotT").textContent=`🤖 Chekni botga yuborish (${aiSom(n*AI_NG)})`;$i("gpKodIn").placeholder=`G${String(n).padStart(2,"0")}-XXXXXX`;
+  $i("gpBal").innerHTML=AI_ADM?"👨‍💻 Admin: Google cheksiz":`💼 Google balansingiz: <b>${AI_BAL} slayd</b>`+(AI_BAL>=n?" — yetarli ✅":"")}
+function aiPayShow(n,quiet){const sec=document.getElementById("gPay");if(!sec)return;sec.hidden=false;aiGPay(n);
+  if(!quiet){sec.scrollIntoView({behavior:"smooth",block:"start"});sec.classList.remove("gp-flash");void sec.offsetWidth;sec.classList.add("gp-flash")}}
+// Google kirish kodini qo'llash (bot to'lovdan keyin yuboradi): kod — slayd soniga qarab, bir marta ishlaydi
+const isGKod=v=>/^G\d{2}[A-Z0-9]{6}$/.test(normCode(v));
+function gpMsg(t,err,btn){const m=document.getElementById("gpMsg");if(!m)return;m.hidden=false;m.className="gp-msg"+(err?" err":"");m.textContent=t;
+  if(btn){const b=document.createElement("button");b.type="button";b.textContent="✨ Slayd yaratishga o'tish";b.onclick=()=>{const tp=document.getElementById("topic");if(tp){tp.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>tp.focus(),400)}};m.append(b)}}
+async function aiRedeem(code){const c=normCode(code);if(!isGKod(c)){const t="Google kirish kodi G20-XXXXXX ko'rinishida bo'ladi. Tekshirib qayta yozing.";setStatus(t,true);gpMsg(t,true);return false}
+  setStatus("🔑 Kod tekshirilmoqda…");gpMsg("🔑 Kod tekshirilmoqda…");const r=await aiJsonp(tgApi()+"?act=ai&gkod="+c+"&i="+encodeURIComponent(tgInit()||""),25000);
+  if(r&&r.ok&&r.gkod){AI_BAL=+r.bal;const k=document.getElementById("aiSw");if(k){k.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}aiNote();
+    const i=document.getElementById("gpKodIn");if(i)i.value="";const t=`✅ Kod qabul qilindi! Google balansingizga ${r.add} ta slayd qo'shildi (jami ${r.bal} slayd).`;
+    setStatus(t+" Mavzuni yozib «🔎 Slayd yaratish»ni bosing.");gpMsg(t,false,true);return true}
+  const t="❌ "+((r&&r.msg)||"Kodni tekshirib bo'lmadi — internetni tekshiring.");setStatus(t,true);gpMsg(t,true);return false}
+const gpGo=i=>aiRedeem(i.value).then(ok=>{if(ok)i.value="";const sec=document.getElementById("gPay");if(sec&&!sec.hidden)sec.scrollIntoView({behavior:"smooth",block:"start"})});
+document.addEventListener("click",e=>{const t=e.target&&e.target.closest&&e.target.closest("#accGo");if(!t)return;const i=document.getElementById("accIn");
+  if(i&&isGKod(i.value)&&aiAvail()){e.stopPropagation();e.preventDefault();gpGo(i)}},true);
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.id!=="accIn")return;if(isGKod(e.target.value)&&aiAvail()){e.stopPropagation();e.preventDefault();gpGo(e.target)}},true);
 // botda Google kaliti bo'lsa — tanlov ko'rinadi
 (function(){const b=document.getElementById("aiSwBox"),c=document.getElementById("aiSw");if(!b||!c||!aiAvail())return;
   let ls=null;try{ls=localStorage.getItem("tp_ai");if(new URLSearchParams(location.search).get("ai")==="1"){ls="1";localStorage.setItem("tp_ai","1")}}catch(_){}
@@ -3032,10 +3054,39 @@ function aiPayShow(n){const box=document.getElementById("aiPay");if(!box)return;
   ["count","topic"].forEach(id=>{const e=document.getElementById(id);if(e){e.addEventListener("change",()=>setTimeout(aiNote,0));e.addEventListener("input",()=>setTimeout(aiNote,0))}});
   document.head.insertAdjacentHTML("beforeend",`<style>.aipay{margin-top:10px;padding:14px;border:2px solid #2a64e0;border-radius:14px;background:rgba(42,100,224,.07)}.aipay h3{margin:0 0 6px;font-size:17px}.aipay p{margin:6px 0}.aipay ol{margin:8px 0 10px 18px;padding:0;font-size:14px;line-height:1.45}
     .aipay-k{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}.aipay-k code{font-size:16px;font-weight:700}.aipay-k button{padding:6px 10px;border-radius:8px;border:1px solid #2a64e0;background:transparent;color:inherit}
-    .aipay-w{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1px dashed #8aa0d8;background:transparent;color:inherit;font-weight:700}</style>`);
+    .aipay-w{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1px dashed #8aa0d8;background:transparent;color:inherit;font-weight:700}
+    .gpay{margin-top:16px;background:radial-gradient(120% 90% at 50% 0%,#0f5560 0%,#0b2a36 55%,#07141c 100%);border-color:#1f9a9a;box-shadow:0 0 0 1px rgba(80,230,200,.1),0 10px 30px rgba(5,30,40,.45)}
+    .gpay .pay-t{color:#6ff0cf;text-shadow:0 0 14px rgba(80,240,200,.5)}.gpay .pay-note{border-color:#4fd8bd;color:#c9fff1}
+    .gp-desc{max-width:420px;text-align:center;font-size:14px;line-height:1.45;color:#d6f7ef}.gp-desc b{color:#fff}
+    .gp-calc{width:100%;max-width:420px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+    .gpay .gp-calc label{margin:0;color:#d6f7ef;font:700 15px/1.2 system-ui,sans-serif;text-transform:none;letter-spacing:0}
+    .gpay .gp-calc select{flex:none;width:auto!important;min-width:104px;max-width:140px;padding:9px 12px;border-radius:10px;border:2px solid #4fd8bd;background:#06222b!important;color:#fff!important;font:700 17px/1 system-ui,sans-serif;box-shadow:none}
+    .gp-sum{font:800 19px/1.3 "Montserrat",system-ui,sans-serif;text-align:center}.gp-sum b{color:#6ff0cf}
+    .gp-bal{font-size:14px;color:#d6f7ef}.gp-bal b{color:#fff}
+    .gp-karta{width:100%;max-width:420px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}.gp-karta code{font:700 17px/1 "Courier New",ui-monospace,monospace;letter-spacing:.05em;color:#fff}
+    .gp-karta button,.gp-msg button{padding:7px 12px;border-radius:9px;border:1px solid #6ff0cf;background:transparent;color:#fff;font-weight:700}
+    .gp-kod{width:100%;max-width:420px}.gp-kod>span{font-weight:800;font-size:15px;color:#6ff0cf}.gp-kod>div{display:flex;gap:8px;margin-top:6px}
+    .gp-kod input{flex:1;min-width:0;padding:11px;border-radius:11px;border:2px solid #4fd8bd;background:#fff;color:#0b2230;font:700 16px/1 system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase}
+    .gp-kod button{padding:11px 18px;border-radius:11px;border:0;background:linear-gradient(180deg,#6ff0cf,#2fc2a4);color:#05212a;font-weight:800}
+    .gp-msg{width:100%;max-width:420px;padding:11px 13px;border-radius:12px;background:rgba(80,240,200,.14);border:1px solid #4fd8bd;font-weight:700;font-size:14px;line-height:1.4;text-align:center}
+    .gp-msg.err{background:rgba(255,90,90,.14);border-color:#ff8a8a}.gp-msg button{display:block;margin:9px auto 0}
+    @keyframes gpf{0%,100%{box-shadow:0 0 0 1px rgba(80,230,200,.1)}50%{box-shadow:0 0 0 4px #6ff0cf}}.gp-flash{animation:gpf .7s ease 3}</style>`);
+  {const cs=document.getElementById("count"),gs=document.getElementById("gpCount");if(cs&&gs){gs.innerHTML=cs.innerHTML;gs.value=cs.value;
+    gs.onchange=()=>{cs.value=gs.value;cs.dispatchEvent(new Event("change",{bubbles:true}))}}
+   const num=((document.getElementById("payNum")||{}).textContent||"").trim(),gn=document.getElementById("gpNum");if(gn)gn.textContent=num;
+   const gc=document.getElementById("gpCopy");if(gc)gc.onclick=()=>copyPlain(num.replace(/\s/g,""),gc);
+   const gb=document.getElementById("gpBot");if(gb)gb.onclick=()=>openBot("ai_"+normCode(getReq())+"_"+(+(cs||{}).value||10));
+   const ki=document.getElementById("gpKodIn"),kg=()=>{if(ki.value.trim())aiRedeem(ki.value)};const kb=document.getElementById("gpKodGo");if(kb)kb.onclick=kg;if(ki)ki.addEventListener("keydown",e=>{if(e.key==="Enter")kg()})}
   aiJsonp(tgApi()+"?act=ai&ping=1&i="+encodeURIComponent(tgInit()||""),20000).then(r=>{if(r&&r.ok){b.hidden=false;AI_GS=r.gs!==false;AI_ADM=!!r.adm;
       if(r.bal!=null)AI_BAL=+r.bal;if(r.narxg)AI_NG=+r.narxg;if(r.narxw)AI_NW=+r.narxw;
-      if(ls===null&&(AI_BAL>0||AI_ADM))c.checked=true;aiNote()}else window.AI_NO=1})})();
+      if(ls===null&&(AI_BAL>0||AI_ADM))c.checked=true;
+      window.AI_ON=1;document.getElementById("gPay").hidden=false;
+      const t0=document.querySelector(".pay:not(.gpay) .pay-t small");if(t0)t0.textContent="📚 Oddiy taqdimot · Vikipediya";
+      const p0=document.querySelector(".pay:not(.gpay) .pay-price");if(p0)p0.innerHTML=aiSom(AI_NW).replace(/ /g,"&nbsp;");
+      if(typeof renderLock==="function")renderLock();aiNote();
+      let gk="";try{gk=normCode(new URLSearchParams(location.search).get("gkod")||"")}catch(_){}
+      if(gk&&isGKod(gk)){let done=false;try{done=sessionStorage.getItem("tp_gk_"+gk)==="1";sessionStorage.setItem("tp_gk_"+gk,"1")}catch(_){}
+        if(!done)aiRedeem(gk).then(()=>document.getElementById("gPay").scrollIntoView({behavior:"smooth",block:"start"}))}}else window.AI_NO=1})})();
 </script>
 </body>
 </html>
