@@ -3050,6 +3050,16 @@ function aiJsonp(url,ms){return new Promise(res=>{const cb="tpai_"+Date.now()+"_
   const fin=v=>{if(done)return;done=true;try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();res(v)};
   window[cb]=fin;s.onerror=()=>fin(undefined);s.onload=()=>setTimeout(()=>fin(undefined),60); // javob JSONP bo'lmasa (eski bot) — darhol
   s.src=url+(url.includes("?")?"&":"?")+"cb="+cb;document.head.append(s);setTimeout(()=>fin(undefined),ms)})}
+// Google slayd so'rovi: avval JSONP; o'qilmasa — oddiy so'rov (javob matnini o'qib, JSON qilib olamiz yoki xato sababini ko'rsatamiz)
+async function aiGet(url,ms){const t0=Date.now();window.__aiRaw="";let r=await aiJsonp(url,ms);if(r)return r;
+  const left=ms-(Date.now()-t0);if(left<5000){window.__aiRaw="vaqt tugadi";return undefined}
+  try{const ctl=typeof AbortController!=="undefined"?new AbortController():null,tm=setTimeout(()=>ctl&&ctl.abort(),left);
+    const rr=await fetch(url+(url.includes("?")?"&":"?")+"cb=tpx",{credentials:"omit",cache:"no-store",signal:ctl?ctl.signal:undefined});clearTimeout(tm);
+    const tx=await rr.text(),m=tx.match(/^\s*tpx\(([\s\S]*)\)\s*;?\s*$/);
+    if(m){try{return JSON.parse(m[1])}catch(e){window.__aiRaw="javobni o'qib bo'lmadi ("+String(e&&e.message||e).slice(0,80)+")";return undefined}}
+    window.__aiRaw=`bot javobi (HTTP ${rr.status}): `+tx.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,220)}
+  catch(e){window.__aiRaw="botga so'rov yuborilmadi ("+String(e&&e.message||e).slice(0,100)+")"}
+  return undefined}
 // Google qidiruv takliflari (Google talabi: qidiruv natijasidan foydalanilganda ko'rsatiladi)
 function aiChip(html){const box=document.getElementById("aiChip");if(!box)return;if(!html){box.hidden=true;box.innerHTML="";return}
   box.hidden=false;box.innerHTML='<div class="aichip-l">Google qidiruv takliflari:</div>';const f=document.createElement("iframe");
@@ -3069,14 +3079,14 @@ async function aiGenerate(topic,lang,n,planMode){
   if(jlOn())p.set("j","1");window.__jlSrc=[];window.__jlN=0;
   const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 20–90 soniya)`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
-  let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),300000)}finally{clearInterval(tick)}window.__aiErr="";
+  let res;try{res=await aiGet(tgApi()+"?"+p.toString(),300000)}finally{clearInterval(tick)}window.__aiErr="";
   if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;if(res.narxj)AI_NJ=+res.narxj;aiPayShow(n);aiNote();
     setStatus(res.jonli?`🎬 Jonli slayd: ${n} bet × ${aiSom(AI_NJ)} = ${aiSom(n*AI_NJ)} (balansdan ${res.kerak||aiKerak(n)} bet). Balansingiz: ${AI_BAL} bet. To'lov qiling yoki «🎬 Jonli slayd»ni o'chirib oddiy PRO (${aiSom(AI_NG)}/bet) bilan yarating.`
       :`🔎 Google bilan ${n} betlik taqdimot — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} bet. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
   if(!res||!res.ok||!Array.isArray(res.secs)){
     if(res&&(res.why==="nokey"||res.why==="off"))window.AI_NO=1;
     const W={nokey:"botda Google kaliti yo'q",off:"Google rejimi o'chirilgan (botga /ai on yozing)",tg:"Telegram tasdiqlamadi — ilovani botdagi tugma orqali qayta oching",glimit:"bugungi umumiy limit tugadi",topic:"mavzu juda qisqa",plan:"reja noto'g'ri"};
-    window.__aiErr=!res?`Google ${Math.round((Date.now()-t0)/1000)} soniyada javob bermadi yoki bot bilan aloqa uzildi. Internetni tekshirib, qayta urinib ko'ring.`:(res.msg||W[res.why]||res.why||"noma'lum xato");
+    window.__aiErr=!res?(window.__aiRaw&&window.__aiRaw!=="vaqt tugadi"?`${window.__aiRaw} (${Math.round((Date.now()-t0)/1000)} s)`:`Google ${Math.round((Date.now()-t0)/1000)} soniyada javob bermadi yoki bot bilan aloqa uzildi. Internetni tekshirib, qayta urinib ko'ring.`):(res.msg||W[res.why]||res.why||"noma'lum xato");
     return false}
   CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};
   const S=res.secs.filter(x=>x&&x.head).map(x=>({head:String(x.head),sents:(x.sents||[]).map(String),subs:(x.subs||[]).map(y=>({head:String(y.head||""),sents:(y.sents||[]).map(String)}))}));
