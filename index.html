@@ -442,11 +442,25 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
   </header>
   <div class="upd" id="updBox" role="status">
     <div class="upd-ic">🎉</div>
-    <div class="upd-t"><b>Yangilanish!</b> Endi slaydlar <b>Google</b>'dan — eng yangi ma'lumot va rasmlar, manbalar ro'yxati bilan. Har slayd <b>1&nbsp;000&nbsp;so'm</b>. Do'stlaringizga ham ulashing!</div>
+    <div class="upd-t"><b>Yangilanish!</b> Endi slaydlar <b>Google</b>'dan — eng yangi ma'lumot va rasmlar, manbalar ro'yxati bilan. Har bir bet <b>1&nbsp;000&nbsp;so'm</b> (20 bet — 20&nbsp;000). Do'stlaringizga ham ulashing!</div>
     <div class="upd-b"><button type="button" class="primary" id="updGo">🔎 Sinab ko'rish</button><button type="button" id="updShare">📤 Ulashish</button><button type="button" id="updX" aria-label="Yopish">✕</button></div>
   </div>
 
 
+
+  <section class="tanlov" id="tanlov" aria-label="Qaysi versiyani tanlash" hidden>
+    <h2>💡 Qaysi birini tanlaysiz?</h2>
+    <div class="tv tv-pro">
+      <div class="tv-h"><span class="tv-b">⭐ PRO</span><b>Google bilan</b><em id="tvNarxG">har bir bet — 1&nbsp;000&nbsp;so'm</em></div>
+      <p>Agar slaydingiz <b>aynan mavzu asosida</b>, <b>ishonchli manbalardan</b> olinishini va <b>so'zlarida xato bo'lmasligini</b> xohlasangiz — Google'dan slayd yaratish <b>PRO versiyasini</b> tanlaganingiz yaxshi. Manbalar ro'yxati ham qo'shiladi.</p>
+      <button type="button" id="tvPro">⭐ PRO versiyani tanlash</button>
+    </div>
+    <div class="tv tv-wiki">
+      <div class="tv-h"><span class="tv-b">📚 ODDIY</span><b>Vikipediya</b><em id="tvNarxW">8&nbsp;000&nbsp;so'm</em></div>
+      <p>Agar ma'lumotlarning aniqligi siz uchun unchalik muhim bo'lmasa, <b>Vikipediya</b> asosida <b id="tvNarxW2">8&nbsp;000&nbsp;so'm</b>ga slayd yaratishingiz mumkin.</p>
+      <button type="button" id="tvWiki">📚 Oddiy versiyani tanlash</button>
+    </div>
+  </section>
 
   <section class="pay" aria-label="To'lov">
     <h2 class="pay-t"><small>Xizmat narxi</small>Taqdimot tayyorlash<span class="pay-price">8&nbsp;000&nbsp;so'm</span></h2>
@@ -466,9 +480,9 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 
   <section class="lock" id="lockBox" aria-live="polite"></section>
   <section class="pay gpay" id="gPay" aria-label="Google bilan to'lov" hidden>
-    <h2 class="pay-t"><small>🔎 Google bilan taqdimot</small>Har slayd<span class="pay-price" id="gpNarx">1&nbsp;000&nbsp;so'm</span></h2>
-    <div class="gp-desc">Ma'lumot va rasmlar <b>Google qidiruvidan</b> olinadi, manbalar ro'yxati bilan. Nechta slayd bo'lsa, shuncha to'laysiz.</div>
-    <div class="gp-calc"><label for="gpCount">Slaydlar soni</label><select id="gpCount"></select></div>
+    <h2 class="pay-t"><small>⭐ PRO versiya · Google bilan</small>Har bir bet (sahifa)<span class="pay-price" id="gpNarx">1&nbsp;000&nbsp;so'm</span></h2>
+    <div class="gp-desc">Ma'lumot va rasmlar <b>Google qidiruvidan</b> olinadi, manbalar ro'yxati bilan. Taqdimot necha betdan iborat bo'lsa, shuncha to'laysiz: 10 bet — 10&nbsp;000&nbsp;so'm, 20 bet — 20&nbsp;000&nbsp;so'm.</div>
+    <div class="gp-calc"><label for="gpCount">Betlar soni</label><select id="gpCount"></select></div>
     <div class="gp-sum" id="gpSum"></div>
     <div class="gp-bal" id="gpBal"></div>
     <div class="gp-karta"><span>💳 Karta</span><code id="gpNum"></code><button type="button" id="gpCopy">Nusxa</button></div>
@@ -510,7 +524,7 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
     <div class="row">
       <div class="field"><label for="lang">Manba tili</label>
         <select id="lang"><option value="uz">O'zbekcha</option><option value="ru">Ruscha</option><option value="en">Inglizcha</option></select></div>
-      <div class="field"><label for="count">Slaydlar soni</label>
+      <div class="field"><label for="count">Slaydlar soni (bet)</label>
         <select id="count"><option>5</option><option>7</option><option selected>10</option><option>15</option><option>20</option><option>25</option><option>30</option><option>40</option><option>50</option></select></div>
     </div>
     <div class="row">
@@ -531,7 +545,7 @@ Ta'limni moliyalashtirish"></textarea>
       <small>Xohlasangiz, rasmlarni slaydga o'zingiz tanlab qo'yishingiz mumkin. Nechta rasm bo'lsa ham yuklang — men ularni har bir reja bandiga moslab qo'yib beraman.</small>
       <div class="filebtn"><button type="button" tabindex="-1">📷 Rasmlarni yuklash</button><input id="myImgs" type="file" accept="image/*" multiple aria-label="Slaydlar uchun rasmlar"></div>
       <div id="myImgList" class="myimg-list"></div></div>
-    <label class="aisw" id="aiSwBox" hidden><input type="checkbox" id="aiSw" checked><span>🔎 <b>Google'dan qidirish</b> — sun'iy intellekt mavzu bo'yicha eng yangi ma'lumot va rasmlarni topib, slaydni tuzadi<small id="aiSwNote"></small></span></label>
+    <label class="aisw" id="aiSwBox" hidden><input type="checkbox" id="aiSw" checked><span>⭐ <b>PRO: Google'dan qidirish</b> — sun'iy intellekt mavzu bo'yicha eng yangi ma'lumot va rasmlarni topib, slaydni tuzadi<small id="aiSwNote"></small></span></label>
     <button class="primary" id="go">Slayd yaratish</button>
     <div class="status" id="status" role="status"></div>
     <div id="aiChip" hidden></div>
@@ -2759,7 +2773,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 // 📤 Ulashish: Telegram'da chat/guruh/kanal tanlash oynasi (bot havolasi + tayyor reklama matni)
 function tpShare(){let ng=1000,nw=8000;try{ng=AI_NG;nw=AI_NW}catch(_){}
   const som=x=>String(x).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm",link="https://t.me/Pro_slidesgo_bot?start=ulash";
-  const txt=`🎓 Taqdimot Pro — 1 daqiqada tayyor slayd!\n🔎 Endi ma'lumot va rasmlar Google'dan — eng yangi, manbalar ro'yxati bilan.\n✅ 111 ta shablon · PPTX va PDF · o'zbek, rus, ingliz tillarida\n💰 Google bilan har slayd ${som(ng)}, oddiy taqdimot ${som(nw)}\n🎁 Har Juma — bepul promo kodlar!\n👇 Sinab ko'ring:`;
+  const txt=`🎓 Taqdimot Pro — 1 daqiqada tayyor slayd!\n🔎 Endi ma'lumot va rasmlar Google'dan — eng yangi, manbalar ro'yxati bilan.\n✅ 111 ta shablon · PPTX va PDF · o'zbek, rus, ingliz tillarida\n💰 Google bilan — har bir bet (sahifa) ${som(ng)}, oddiy taqdimot — ${som(nw)}\n🎁 Har Juma — bepul promo kodlar!\n👇 Sinab ko'ring:`;
   const u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(txt);window.__share=u;
   if(window.IN_TG&&IN_TG()&&window.tgOpen){tgOpen(u);return}
   if(navigator.share){navigator.share({text:txt,url:link}).catch(()=>{});return}
@@ -2986,7 +3000,7 @@ async function aiGenerate(topic,lang,n,planMode){
   const t0=Date.now(),msg=()=>`🔎 Google orqali «${topic}» bo'yicha ma'lumot qidirilmoqda… ${Math.round((Date.now()-t0)/1000)} s (odatda 15–40 soniya)`;
   setStatus(msg());const tick=setInterval(()=>setStatus(msg()),1000);
   let res;try{res=await aiJsonp(tgApi()+"?"+p.toString(),170000)}finally{clearInterval(tick)}
-  if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;aiPayShow(n);aiNote();setStatus(`🔎 Google bilan ${n} ta slayd — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} slayd. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
+  if(res&&res.why==="pay"){AI_BAL=Number(res.bal)||0;if(res.narx)AI_NG=+res.narx;aiPayShow(n);aiNote();setStatus(`🔎 Google bilan ${n} betlik taqdimot — ${aiSom(n*AI_NG)}. Balansingiz: ${AI_BAL} bet. To'lov qiling yoki oddiy (Vikipediya) slaydni tanlang.`,true);return "pay"}
   if(!res||!res.ok||!Array.isArray(res.secs)){
     if(!res||res.why==="nokey"||res.why==="off")window.AI_NO=1;
     setStatus((res&&res.why==="ulimit"?res.msg+" ":"")+"Google'dan ma'lumot olinmadi — Vikipediyadan qidirilmoqda…");return false}
@@ -3025,22 +3039,22 @@ async function aiGenerate(topic,lang,n,planMode){
   const myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool);
   deck=Object.assign(deck,{title:shown,article:main.title,slides:r.slides,sources,pool,cands:(f.others||[]).filter(t=>t!==main.title),lang});
   save();render();if(res.qoldi!=null){AI_BAL=+res.qoldi;aiNote()}
-  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} slayd qoldi.`:""));
+  setStatus(`✅ Tayyor: ${r.slides.length} ta slayd. Ma'lumot ${res.gs?`Google qidiruvidan (${web.length} ta sayt)`:"Google Gemini sun'iy intellektidan"}, ${pool.length} ta rasm`+(gPool.length?` (${gPool.length} tasi Google'dan)`:"")+"."+(r.empty?` ${r.empty} ta bandni o'zingiz to'ldiring.`:"")+(res.qoldi!=null?` 💼 Google balansingizda ${res.qoldi} bet qoldi.`:""));
   if(res.gs&&res.chip)aiChip(res.chip);
   return true}
-// 💰 Google bilan: har slayd AI_NG so'm (bot balansidan), oddiy — AI_NW so'm
+// 💰 Google bilan: har bir bet AI_NG so'm (bot balansidan), oddiy — AI_NW so'm
 let AI_BAL=0,AI_NG=1000,AI_NW=8000,AI_ADM=false,AI_GS=true;
 const aiSom=x=>String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" so'm";
 function aiNote(){const nt=document.getElementById("aiSwNote"),c=document.getElementById("aiSw"),n=+(document.getElementById("count")||{}).value||10;
-  if(nt)nt.innerHTML=`💰 <b>${n} slayd × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b>${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} slayd</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
-  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} slayd)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}
+  if(nt)nt.innerHTML=`💰 <b>${n} bet × ${aiSom(AI_NG)} = ${aiSom(n*AI_NG)}</b>${AI_ADM?" · admin: cheksiz":` · 💼 balansingiz: <b>${AI_BAL} bet</b>`}<br>${AI_GS?"Rasmlar ham Google'dan, manbalar ro'yxati bilan.":"Rasmlar Vikipediyadan."} O'chirsangiz — oddiy taqdimot (Vikipediya, ${aiSom(AI_NW)}).`;
+  const g=document.getElementById("go");if(g&&c&&!document.getElementById("aiSwBox").hidden){if(c.checked)g.textContent=AI_ADM||AI_BAL>=n?`🔎 Slayd yaratish (balansdan ${n} bet)`:`🔎 Slayd yaratish — ${aiSom(n*AI_NG)}`;else if(typeof updateGo==="function")updateGo()}
   aiGPay(n)}
 // 🔎 Google bo'limi: slayd soni, jami narx, balans
 function aiGPay(n){const nb=x=>x.replace(/ /g,"&nbsp;"),$i=id=>document.getElementById(id);if(!$i("gPay"))return;
   $i("gpNarx").innerHTML=nb(aiSom(AI_NG));const sel=$i("gpCount");if(sel&&sel.value!==String(n))sel.value=String(n);
-  $i("gpSum").innerHTML=`${n} slayd × ${nb(aiSom(AI_NG))} = <b>${nb(aiSom(n*AI_NG))}</b>`;$i("gpSum2").textContent=aiSom(n*AI_NG);
+  $i("gpSum").innerHTML=`${n} bet × ${nb(aiSom(AI_NG))} = <b>${nb(aiSom(n*AI_NG))}</b>`;$i("gpSum2").textContent=aiSom(n*AI_NG);
   $i("gpBotT").textContent=`🤖 Chekni botga yuborish (${aiSom(n*AI_NG)})`;$i("gpKodIn").placeholder=`G${String(n).padStart(2,"0")}-XXXXXX`;
-  $i("gpBal").innerHTML=AI_ADM?"👨‍💻 Admin: Google cheksiz":`💼 Google balansingiz: <b>${AI_BAL} slayd</b>`+(AI_BAL>=n?" — yetarli ✅":"")}
+  $i("gpBal").innerHTML=AI_ADM?"👨‍💻 Admin: Google cheksiz":`💼 Google balansingiz: <b>${AI_BAL} bet</b>`+(AI_BAL>=n?" — yetarli ✅":"")}
 function aiPayShow(n,quiet){const sec=document.getElementById("gPay");if(!sec)return;sec.hidden=false;aiGPay(n);
   if(!quiet){sec.scrollIntoView({behavior:"smooth",block:"start"});sec.classList.remove("gp-flash");void sec.offsetWidth;sec.classList.add("gp-flash")}}
 // Google kirish kodini qo'llash (bot to'lovdan keyin yuboradi): kod — slayd soniga qarab, bir marta ishlaydi
@@ -3050,7 +3064,7 @@ function gpMsg(t,err,btn){const m=document.getElementById("gpMsg");if(!m)return;
 async function aiRedeem(code){const c=normCode(code);if(!isGKod(c)){const t="Google kirish kodi G20-XXXXXX ko'rinishida bo'ladi. Tekshirib qayta yozing.";setStatus(t,true);gpMsg(t,true);return false}
   setStatus("🔑 Kod tekshirilmoqda…");gpMsg("🔑 Kod tekshirilmoqda…");const r=await aiJsonp(tgApi()+"?act=ai&gkod="+c+"&i="+encodeURIComponent(tgInit()||""),25000);
   if(r&&r.ok&&r.gkod){AI_BAL=+r.bal;const k=document.getElementById("aiSw");if(k){k.checked=true;try{localStorage.setItem("tp_ai","1")}catch(_){}}aiNote();
-    const i=document.getElementById("gpKodIn");if(i)i.value="";const t=`✅ Kod qabul qilindi! Google balansingizga ${r.add} ta slayd qo'shildi (jami ${r.bal} slayd).`;
+    const i=document.getElementById("gpKodIn");if(i)i.value="";const t=`✅ Kod qabul qilindi! Google balansingizga ${r.add} bet qo'shildi (jami ${r.bal} bet).`;
     setStatus(t+" Mavzuni yozib «🔎 Slayd yaratish»ni bosing.");gpMsg(t,false,true);return true}
   const t="❌ "+((r&&r.msg)||"Kodni tekshirib bo'lmadi — internetni tekshiring.");setStatus(t,true);gpMsg(t,true);return false}
 const gpGo=i=>aiRedeem(i.value).then(ok=>{if(ok)i.value="";const sec=document.getElementById("gPay");if(sec&&!sec.hidden)sec.scrollIntoView({behavior:"smooth",block:"start"})});
@@ -3081,17 +3095,35 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target||e.target.
     .gp-kod button{padding:11px 18px;border-radius:11px;border:0;background:linear-gradient(180deg,#6ff0cf,#2fc2a4);color:#05212a;font-weight:800}
     .gp-msg{width:100%;max-width:420px;padding:11px 13px;border-radius:12px;background:rgba(80,240,200,.14);border:1px solid #4fd8bd;font-weight:700;font-size:14px;line-height:1.4;text-align:center}
     .gp-msg.err{background:rgba(255,90,90,.14);border-color:#ff8a8a}.gp-msg button{display:block;margin:9px auto 0}
+    .tanlov{border-radius:16px;padding:16px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+    .tanlov h2{margin:0;font:800 19px/1.2 "Montserrat",system-ui,sans-serif;color:#12306b}
+    .tv{border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
+    .tv-pro{background:linear-gradient(135deg,rgba(47,194,164,.16),rgba(15,85,96,.08));border:2px solid #2fc2a4}
+    .tv-wiki{background:rgba(42,100,224,.06);border:1.5px solid #9db4ea}
+    .tv-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tv-h b{font-size:16px;color:#12306b}.tv-h em{margin-left:auto;font-style:normal;font-weight:800;color:#0d7a63;white-space:nowrap}
+    .tv-wiki .tv-h em{color:#2a50b8}
+    .tv-b{font:800 12px/1 "Montserrat",system-ui,sans-serif;letter-spacing:.06em;padding:6px 9px;border-radius:999px;color:#fff;background:linear-gradient(180deg,#2fc2a4,#13917a)}
+    .tv-wiki .tv-b{background:linear-gradient(180deg,#5a8dee,#2a50b8)}
+    .tv p{margin:0;font-size:14.5px;line-height:1.5;color:#22325e}.tv p b{color:#0f1f4d}
+    .tv button{align-self:stretch;padding:11px;border-radius:11px;border:0;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(180deg,#2fc2a4,#13917a)}
+    .tv-wiki button{background:transparent;color:#2a50b8;border:1.5px solid #5a8dee}
     @keyframes gpf{0%,100%{box-shadow:0 0 0 1px rgba(80,230,200,.1)}50%{box-shadow:0 0 0 4px #6ff0cf}}.gp-flash{animation:gpf .7s ease 3}</style>`);
   {const cs=document.getElementById("count"),gs=document.getElementById("gpCount");if(cs&&gs){gs.innerHTML=cs.innerHTML;gs.value=cs.value;
     gs.onchange=()=>{cs.value=gs.value;cs.dispatchEvent(new Event("change",{bubbles:true}))}}
    const num=((document.getElementById("payNum")||{}).textContent||"").trim(),gn=document.getElementById("gpNum");if(gn)gn.textContent=num;
    const gc=document.getElementById("gpCopy");if(gc)gc.onclick=()=>copyPlain(num.replace(/\s/g,""),gc);
    const gb=document.getElementById("gpBot");if(gb)gb.onclick=()=>openBot("ai_"+normCode(getReq())+"_"+(+(cs||{}).value||10));
+   const tvP=document.getElementById("tvPro"),tvW=document.getElementById("tvWiki"),sw=document.getElementById("aiSw");
+   const swSet=on=>{if(!sw)return;sw.checked=on;try{localStorage.setItem("tp_ai",on?"1":"0")}catch(_){}try{aiNote()}catch(_){}};
+   if(tvP)tvP.onclick=()=>{swSet(true);const g=document.getElementById("gPay");if(g)g.scrollIntoView({behavior:"smooth",block:"start"})};
+   if(tvW)tvW.onclick=()=>{swSet(false);const p=document.querySelector(".pay:not(.gpay)");if(p)p.scrollIntoView({behavior:"smooth",block:"start"})};
    const ki=document.getElementById("gpKodIn"),kg=()=>{if(ki.value.trim())aiRedeem(ki.value)};const kb=document.getElementById("gpKodGo");if(kb)kb.onclick=kg;if(ki)ki.addEventListener("keydown",e=>{if(e.key==="Enter")kg()})}
   aiJsonp(tgApi()+"?act=ai&ping=1&i="+encodeURIComponent(tgInit()||""),20000).then(r=>{if(r&&r.ok){b.hidden=false;AI_GS=r.gs!==false;AI_ADM=!!r.adm;
       if(r.bal!=null)AI_BAL=+r.bal;if(r.narxg)AI_NG=+r.narxg;if(r.narxw)AI_NW=+r.narxw;
       if(ls===null&&(AI_BAL>0||AI_ADM))c.checked=true;
       window.AI_ON=1;document.getElementById("gPay").hidden=false;
+      {const tv=document.getElementById("tanlov"),nb=x=>x.replace(/ /g,"&nbsp;");if(tv){tv.hidden=false;
+        document.getElementById("tvNarxG").innerHTML="har bir bet — "+nb(aiSom(AI_NG));document.getElementById("tvNarxW").innerHTML=nb(aiSom(AI_NW));document.getElementById("tvNarxW2").innerHTML=nb(aiSom(AI_NW))}}
       const t0=document.querySelector(".pay:not(.gpay) .pay-t small");if(t0)t0.textContent="📚 Oddiy taqdimot · Vikipediya";
       const p0=document.querySelector(".pay:not(.gpay) .pay-price");if(p0)p0.innerHTML=aiSom(AI_NW).replace(/ /g,"&nbsp;");
       if(typeof renderLock==="function")renderLock();aiNote();
