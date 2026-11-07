@@ -227,6 +227,10 @@ details[open] summary{margin-bottom:8px}
 @media (prefers-reduced-motion:reduce){#splash .sp-bar i{animation:none;width:100%}}
 
 .dl-link{display:flex;flex-direction:column;gap:8px}
+.row.r1{grid-template-columns:1fr;margin-top:8px}
+.vidb{width:100%;margin-top:10px;background:linear-gradient(135deg,#ff4f8b,#a63cf0)!important;border:0!important;color:#fff!important}
+.vid-note{display:block;margin-top:8px;font-size:13px;line-height:1.45;color:#4a4f6a}
+.botsave #tgVid{background:#ffe1ef!important;color:#b0185c!important}
 .dl-a{display:block;text-align:center;text-decoration:none;background:#2e7d32;color:#fff;font:700 16px/1.3 var(--body);padding:14px;border-radius:10px}
 .dl-row{display:flex;gap:8px}.dl-row input{flex:1;min-width:0;font-size:13px!important}
 .dl-link small{color:var(--muted);font-size:13px}
@@ -681,11 +685,14 @@ Ta'limni moliyalashtirish"></textarea>
       <button class="primary" id="pptx">PowerPoint (.pptx)</button>
       <button class="primary" id="pdf" style="background:#b4322a;border-color:#b4322a">PDF</button>
     </div>
+    <button class="primary vidb" id="vidMp4">🎬 Video — harakatlanadi (telefonda o'ynaydi)</button>
+    <small class="vid-note">🎬 <b>Video</b> — rasmlar, hayvonlar va jonli videolar harakatlanadi: Telegram va galereyada o'ynaydi.<br>📊 <b>PowerPoint</b> — slayd namoyishida (▶) harakatlanadi (PowerPoint, WPS).<br>📄 <b>PDF</b> — harakatsiz, chop etish uchun.</small>
     <span class="lbl">Telegram «Saqlangan xabarlar»ga fayl bo'lib yuborish</span>
     <div class="row">
       <button class="primary tgb" id="tgPptx">✈ PPTX → Telegram</button>
       <button class="primary tgb" id="tgPdf">✈ PDF → Telegram</button>
     </div>
+    <div class="row r1"><button class="primary tgb" id="tgVid">✈ Video → Telegram</button></div>
     <div id="dlLink" class="dl-link" hidden></div>
     <div class="status" id="dlStatus" role="status">Taqdimot tayyor bo'lgach, kerakli formatni tanlang. Dizayn faylga to'liq o'tadi.</div>
   </section>
@@ -2438,7 +2445,8 @@ $("#show").addEventListener("touchend",e=>{if(tx===null)return;const dx=e.change
 /* ---------- Yuklab olish: PPTX va PDF (har bir slayd dizayni bilan rasmga olinadi) ---------- */
 const waitImgs=el=>Promise.all([...el.querySelectorAll("img")].map(im=>im.complete?0:new Promise(r=>{im.onload=im.onerror=r;setTimeout(r,8000)})));
 function dlStatus(t,err){const e=$("#dlStatus");e.textContent=t;e.className="status"+(err?" err":"")}
-const fname=ext=>((deck.title||"taqdimot").replace(/[\\/:*?"<>|]+/g,"").trim()||"taqdimot")+"."+ext;
+const kx=k=>k==="vid"?(BLOBS.vid&&/webm/.test(BLOBS.vid.type)?"webm":"mp4"):k; // 🎬 video kengaytmasi
+const fname=ext=>((deck.title||"taqdimot").replace(/[\\/:*?"<>|]+/g,"").trim()||"taqdimot")+"."+kx(ext);
 async function captureSlides(label){
   if(typeof html2canvas==="undefined")throw new Error("Rasmga olish kutubxonasi yuklanmadi. Internetni tekshiring.");
   const stage=$("#stage"),out=[];
@@ -2469,15 +2477,12 @@ async function nativeSave(blob,name){
   return false}
 async function uploadTemp(blob,name){
   const P=u=>"https://corsproxy.io/?url="+encodeURIComponent(u);
-  const tmpfiles=async via=>{const fd=new FormData();fd.append("file",blob,name);const r=await fetch(via("https://tmpfiles.org/api/v1/upload"),{method:"POST",body:fd});const j=await r.json();
-      if(!j||!j.data||!j.data.url)throw 0;return j.data.url.replace(/^http:/,"https:").replace("tmpfiles.org/","tmpfiles.org/dl/")};
-  const tflink=async via=>{const fd=new FormData();fd.append("file",blob,name);const r=await fetch(via("https://tmpfile.link/api/upload"),{method:"POST",body:fd});const j=await r.json();
-      if(!j||!j.downloadLink)throw 0;return j.downloadLink};
+  // tmpfiles.org ishlatilmaydi: yuklab olish o'rniga reklama saytlariga olib ketadi
   const litter=async via=>{const fd=new FormData();fd.append("reqtype","fileupload");fd.append("time","72h");fd.append("fileToUpload",blob,name);
       const r=await fetch(via("https://litterbox.catbox.moe/resources/internals/api.php"),{method:"POST",body:fd});const t=(await r.text()).trim();if(!/^https:\/\//.test(t))throw 0;return t};
-  const D=u=>u,tries=[[litter,D],[tmpfiles,D],[tflink,D],[litter,P],[tmpfiles,P],[tflink,P]];
-  for(const[k,[f,via]]of tries.entries()){dlStatus(`Yuklab olish havolasi tayyorlanmoqda (${k+1}-usul)…`);
-    try{return await Promise.race([f(via),new Promise((_,rj)=>setTimeout(()=>rj(0),45000))])}catch(_){}}
+  const D=u=>u,tries=[[litter,D],[litter,P]],wait=Math.max(45000,blob.size/1048576*5000),pre=window.__tgErr?window.__tgErr+" ":"";
+  for(const[k,[f,via]]of tries.entries()){dlStatus(`${pre}Yuklab olish havolasi tayyorlanmoqda (${k+1}-usul, ${(blob.size/1048576).toFixed(1)} MB)…`);
+    try{return await Promise.race([f(via),new Promise((_,rj)=>setTimeout(()=>rj(0),wait))])}catch(_){}}
   return null}
 function copyText(t,btn){const done=()=>{btn.textContent="Nusxa olindi ✓"};
   const fb=()=>{const i=$("#dlUrl");i.focus();i.select();i.setSelectionRange(0,99999);try{if(document.execCommand("copy"))done()}catch(_){}};
@@ -2513,6 +2518,7 @@ async function saveBlob(blob,name){
   return"browser"}
 async function buildBlob(kind){
   if(BLOBS[kind])return BLOBS[kind];
+  if(kind==="vid"){const v=await buildVideo();BLOBS.vid=v;return v}
   if(kind==="pptx"&&typeof PptxGenJS==="undefined")throw new Error("PowerPoint kutubxonasi yuklanmadi. Internetni tekshiring.");
   if(kind==="pdf"&&!(window.jspdf&&window.jspdf.jsPDF))throw new Error("PDF kutubxonasi yuklanmadi. Internetni tekshiring.");
   const JL=kind==="pptx"&&deck.jonli&&typeof jlCapture==="function";
@@ -2527,7 +2533,7 @@ async function buildBlob(kind){
     shots.forEach((d,i)=>{if(i)doc.addPage([W,H],"landscape");doc.addImage(d,"JPEG",0,0,W,H)});
     doc.setProperties({title:deck.title||"Taqdimot",author:deck.author||""});blob=doc.output("blob")}
   BLOBS[kind]=blob;return blob}
-const allBtns=()=>["#pptx","#pdf","#tgPptx","#tgPdf"].map(x=>$(x)).filter(Boolean);
+const allBtns=()=>["#pptx","#pdf","#tgPptx","#tgPdf","#vidMp4","#tgVid"].map(x=>$(x)).filter(Boolean);
 async function runExport(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const blob=await buildBlob(kind);
@@ -2547,7 +2553,7 @@ async function nativeShare(blob,name){const bs=bridges();if(!bs.length)return fa
   return false}
 // Telegram uchun fayl nomi: "Ism Familiya - Mavzu.pdf"
 const clean_=t=>String(t||"").replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g," ").trim();
-function tgName(kind){const a=clean_(deck.author),t=clean_(deck.title)||"Taqdimot";return (a?a+" - "+t:t)+"."+kind}
+function tgName(kind){const a=clean_(deck.author),t=clean_(deck.title)||"Taqdimot";return (a?a+" - "+t:t)+"."+kx(kind)}
 function tgCaption(){return [deck.author?"Tayyorladi: "+deck.author:"","Mavzu: "+(deck.title||""),[deck.uni,deck.fac].filter(Boolean).join(", "),[deck.major,deck.kurs?kursText():""].filter(Boolean).join(", ")].filter(Boolean).join("\n")}
 async function shareNow(kind){
   const blob=BLOBS[kind],name=tgName(kind);if(!blob)return;
@@ -2583,8 +2589,9 @@ function canShareKind(kind){try{const b=BLOBS[kind];if(!navigator.share||!naviga
 async function runTelegram(kind){
   allBtns().forEach(b=>b.disabled=true);
   try{const had=!!BLOBS[kind];await buildBlob(kind);
-    if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(BLOBS[kind],fname(kind)))return}
-    if(window.IN_TG&&IN_TG()){await tgSave(BLOBS[kind],fname(kind));
+    const viaBot=typeof tgCanBot==="function"&&tgCanBot();
+    if(viaBot){if(await tgBotSend(BLOBS[kind],fname(kind)))return}
+    if(window.IN_TG&&IN_TG()){await tgSave(BLOBS[kind],fname(kind),viaBot);
       if(!(typeof tgCanBot==="function"&&tgCanBot()))dlStatus("⚠️ Fayl bot chatiga yuborilmadi: "+tgWhy()+" Botga /start yozing va yangi kelgan xabardagi «⚡ Slayd yaratish» tugmasini bosing. Hozircha faylni shu yerdan yuklab olishingiz mumkin.",true);
       return}
     if(had||!canShareKind(kind)){await shareNow(kind);return}
@@ -2599,6 +2606,8 @@ $("#pptx").onclick=()=>runExport("pptx");
 $("#pdf").onclick=()=>runExport("pdf");
 $("#tgPptx").onclick=()=>runTelegram("pptx");
 $("#tgPdf").onclick=()=>runTelegram("pdf");
+$("#vidMp4").onclick=()=>runExport("vid");
+$("#tgVid").onclick=()=>runTelegram("vid");
 
 /* ---------- kirish ekrani: 4 soniyadan keyin yoki bosilganda yopiladi ---------- */
 (function(){const sp=$("#splash");if(!sp)return;let done=false;
@@ -2934,11 +2943,12 @@ function tpShare(){let ng=1000,nw=8000;try{ng=AI_NG;nw=AI_NW}catch(_){}
   window.addEventListener("load",function(){ try{ if(window.IN_TG()&&window.Telegram&&Telegram.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); } }catch(_){} });
 })();
 // Telegram ichida PPTX/PDF yuklab olish: fayl vaqtincha internetga joylanadi va Telegram o'zi yuklab beradi
-async function tgSave(blob,name){
-  if(typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(blob,name))return "tg"}
-  dlStatus("Fayl tayyorlanmoqda… (Telegram ichida yuklab olish uchun)");
-  const link=await uploadTemp(blob,name);
-  if(!link){ dlStatus("Faylni tayyorlab bo'lmadi. Internetni tekshiring yoki saytni Chrome'da oching.",true); return "tg"; }
+async function tgSave(blob,name,noBot){
+  if(!noBot&&typeof tgCanBot==="function"&&tgCanBot()){if(await tgBotSend(blob,name))return "tg"}
+  const pre=window.__tgErr?window.__tgErr+" ":"";
+  dlStatus(pre+"Fayl havola orqali tayyorlanmoqda… (Telegram ichida yuklab olish uchun)",!!pre);
+  const link=await uploadTemp(blob,name);window.__tgErr="";
+  if(!link){ dlStatus(pre+"Havola ham yaratilmadi. Internetni tekshiring yoki slaydlar sonini kamaytirib qayta urinib ko'ring.",true); return "tg"; }
   const W=window.Telegram&&Telegram.WebApp;
   let ok=false;
   try{ if(W&&W.downloadFile&&W.isVersionAtLeast&&W.isVersionAtLeast("8.0")){ W.downloadFile({url:link,file_name:name}); ok=true; } }catch(_){}
@@ -2969,7 +2979,8 @@ function jsonp(url){return new Promise(res=>{const cb="tpcb_"+Date.now()+"_"+Mat
 async function tgBotSend(blob,name){
   const api=tgApi(),init=tgInit();if(!api||!init)return false;
   const mb=(blob.size/1048576).toFixed(1);
-  if(blob.size>45*1048576){dlStatus(`Fayl juda katta (${mb} MB) — bot orqali yuborib bo'lmaydi. Slaydlar sonini kamaytiring.`,true);return false}
+  window.__tgErr="";
+  if(blob.size>45*1048576){window.__tgErr=`⚠️ Fayl katta (${mb} MB): Telegram bot 45 MB gacha fayl yuboradi.`;dlStatus(window.__tgErr,true);return false}
   dlStatus(`📤 Fayl botga yuborilmoqda (${mb} MB)… Internet tezligiga qarab biroz vaqt oladi.`);
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const ext=(name.split(".").pop()||"").toLowerCase(),nice=(typeof tgName==="function"&&deck&&deck.title)?tgName(ext):name;
@@ -2978,12 +2989,13 @@ async function tgBotSend(blob,name){
     const b64=await blobToB64(blob);
     await fetch(api,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify({act:"fayl",id,initData:init,name:nice,mime:blob.type||"application/octet-stream",b64,caption})});
-  }catch(_){dlStatus("Faylni yuborib bo'lmadi: internet aloqasini tekshiring.",true);return false}
-  dlStatus("⏳ Bot faylni chatga joylamoqda…");
-  for(let i=0;i<40;i++){
+  }catch(_){window.__tgErr="⚠️ Faylni botga yuborib bo'lmadi (internet uzildi).";dlStatus(window.__tgErr,true);return false}
+  const big=blob.size>8*1048576;
+  for(let i=0;i<(big?72:40);i++){
+    dlStatus(`⏳ Bot faylni chatga joylamoqda… ${Math.round(i*2.5)} s`+(big?" (katta fayl — 1–2 daqiqa)":""));
     const st=await jsonp(api+"?act=st&id="+id);
     if(st&&st.ok){tgSent(nice);return true}
-    if(st&&st.ok===false){dlStatus("❌ "+st.msg,true);return false}
+    if(st&&st.ok===false){window.__tgErr="❌ "+st.msg;dlStatus(window.__tgErr,true);return false}
     await new Promise(r=>setTimeout(r,2500));
   }
   dlStatus("Fayl yuborildi, lekin javob kechikyapti. Bot chatini tekshiring — bir ozdan keyin paydo bo'ladi.");
@@ -3019,7 +3031,8 @@ window.addEventListener("load",()=>{setTimeout(()=>{
   const blk=document.createElement("div");blk.className="botsave";
   blk.innerHTML='<b>🤖 Botning o\'ziga saqlash</b><small>Tayyor taqdimot fayl bo\'lib shu bot chatiga keladi — keyin uni ochishingiz yoki do\'stlaringizga yuborishingiz mumkin.</small>';
   a.textContent="🤖 PPTX — botga saqlash";b.textContent="🤖 PDF — botga saqlash";
-  blk.append(row);if(l)l.remove();
+  const v=document.getElementById("tgVid");if(v)v.textContent="🎬 Video — botga saqlash (hayvonlar harakatlanadi)";
+  blk.append(row);if(v)blk.append(v.closest(".row"));if(l)l.remove();
   if(typeof tgCanBot==="function"&&!tgCanBot()){const w=document.createElement("div");w.className="bs-warn";
     w.innerHTML='⚠️ Bot chatiga yuborish hozir ishlamaydi: '+esc(tgWhy())+'<br>Botga qaytib <b>/start</b> yozing va yangi xabardagi <b>«⚡ Slayd yaratish»</b> tugmasini bosing.<button type="button" id="bsBack">💬 Botga qaytish</button>';
     blk.append(w);w.querySelector("#bsBack").onclick=()=>{try{Telegram.WebApp.close()}catch(_){location.href="https://t.me/Pro_slidesgo_bot"}}}
@@ -3204,7 +3217,7 @@ function aiGDev(){const sec=document.getElementById("gPay"),box=document.getElem
   const adm=!!AI_ADM,dev=aiDev();sec.classList.toggle("gp-free",adm);
   if(!adm&&!dev){box.hidden=true;return}
   const ok=v=>v?"✅":"⚠️",old=AI_VER==="eski"||!AI_VON;
-  const diag=`🌐 Sayt: v25 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
+  const diag=`🌐 Sayt: v26 · 🤖 Bot: ${AI_VER&&AI_VER!=="eski"?"Versiya "+esc(AI_VER):"eski versiya"} · 🔎 Google ${ok(window.AI_ON)} · 🎬 Jonli ${ok(window.AI_ON)} · 🎥 Video ${ok(!old)}`;
   box.hidden=false;
   if(adm){box.innerHTML=`<b>👨‍💻 Dasturchi rejimi</b><p>Google va 🎬 Jonli slayd siz uchun <b>ochiq — bepul va cheksiz</b>. To'lov shart emas.</p>
     <div class="gp-dev-b"><button type="button" data-gdev="g">🔎 Google bilan slayd yaratish</button><button type="button" data-gdev="j">🎬 Jonli slayd yaratish</button></div>
@@ -3409,26 +3422,31 @@ document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.targ
   if(b.id==="jlAll"){b.disabled=true;(async()=>{const V=deck.vids||{};for(const x of jlItems()){if(V[x.u]&&V[x.u].st!=="err")continue;const ok=await jlStart(x.i);if(!ok)break}})().finally(()=>{b.disabled=false});return}
   b.disabled=true;jlStart(+b.dataset.jlv).finally(()=>{b.disabled=false})});
 // ---- PowerPoint: rasmlar alohida qatlam (chiqib keladi), videolar o'zi o'ynaydi, slaydlar jonli almashadi ----
-function jlCrop(im,w,h,rad){try{const k=Math.min(2,1600/Math.max(w,h)),W=Math.max(1,Math.round(w*k)),H=Math.max(1,Math.round(h*k)),c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
-    const r=Math.min(W,H)/2>rad*k?rad*k:0;if(r>0.5){x.beginPath();x.moveTo(r,0);x.arcTo(W,0,W,H,r);x.arcTo(W,H,0,H,r);x.arcTo(0,H,0,0,r);x.arcTo(0,0,W,0,r);x.closePath();x.clip()}
-    const iw=im.naturalWidth,ih=im.naturalHeight,fit=getComputedStyle(im).objectFit,sc=fit==="contain"?Math.min(W/iw,H/ih):Math.max(W/iw,H/ih),dw=iw*sc,dh=ih*sc;
-    if(fit==="contain"){x.fillStyle="#fff";x.fillRect(0,0,W,H)}
-    x.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);return r>0.5?c.toDataURL("image/png"):c.toDataURL("image/jpeg",.9)}catch(_){return null}}
-async function jlCapture(){
+// rasm qatlami: PNG o'rniga yengil JPEG (yumaloq burchaklar orqasi — slaydning o'z fonidan), 1000 px gacha
+function jlCrop(o,cv,kx,ky){const im=o.im;
+  const mk=bg=>{const k=Math.min(2,1000/Math.max(o.w0,o.h0)),W=Math.max(1,Math.round(o.w0*k)),H=Math.max(1,Math.round(o.h0*k)),c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+    x.fillStyle="#fff";x.fillRect(0,0,W,H);if(bg&&cv)x.drawImage(cv,o.x0*kx,o.y0*ky,o.w0*kx,o.h0*ky,0,0,W,H);
+    const r=Math.min(W,H)/2>o.rad*k?o.rad*k:0;if(r>0.5){x.beginPath();x.moveTo(r,0);x.arcTo(W,0,W,H,r);x.arcTo(W,H,0,H,r);x.arcTo(0,H,0,0,r);x.arcTo(0,0,W,0,r);x.closePath();x.clip()}
+    const iw=im.naturalWidth,ih=im.naturalHeight,sc=o.fit==="contain"?Math.min(W/iw,H/ih):Math.max(W/iw,H/ih),dw=iw*sc,dh=ih*sc;
+    if(o.fit==="contain"){x.fillStyle="#fff";x.fillRect(0,0,W,H)}
+    x.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);return c.toDataURL("image/jpeg",.85)};
+  try{return mk(true)}catch(_){try{return mk(false)}catch(_){return null}}}
+async function jlCapture(lbl){
   if(typeof html2canvas==="undefined")throw new Error("Rasmga olish kutubxonasi yuklanmadi. Internetni tekshiring.");
   const stage=$("#stage"),out=[];
   try{for(const[i,s]of deck.slides.entries()){
-      dlStatus(`PowerPoint (jonli) tayyorlanmoqda: ${i+1} / ${deck.slides.length}…`);
+      dlStatus(`${lbl||"PowerPoint (jonli)"} tayyorlanmoqda: ${i+1} / ${deck.slides.length}…`);
       stage.innerHTML=slideHTML(s,i);stage.querySelectorAll("img").forEach(im=>im.loading="eager");
       await waitImgs(stage);fitAll(stage);
-      const sl=stage.firstElementChild,R=sl.getBoundingClientRect(),overs=[];
+      const sl=stage.firstElementChild,R=sl.getBoundingClientRect(),box=[];
       for(const im of sl.querySelectorAll(".ph img,.dr-card img,.dr-sp img")){if(!im.complete||!im.naturalWidth)continue;
         const p=im.parentElement,cs=getComputedStyle(p),bw=parseFloat(cs.borderTopWidth)||0,B=p.getBoundingClientRect();
-        const x0=B.left+bw,y0=B.top+bw,w0=B.width-2*bw,h0=B.height-2*bw;if(w0<24||h0<24)continue;
-        const d=jlCrop(im,w0,h0,Math.max(0,(parseFloat(cs.borderTopLeftRadius)||0)-bw));if(!d)continue;
-        overs.push({data:d,x:(x0-R.left)/R.width,y:(y0-R.top)/R.height,w:w0/R.width,h:h0/R.height,src:im.getAttribute("src")});im.style.visibility="hidden"}
-      const cv=await html2canvas(sl,{useCORS:true,scale:1.6,backgroundColor:"#ffffff",logging:false,scrollX:0,scrollY:-window.scrollY});
-      out.push({shot:cv.toDataURL("image/jpeg",.9),overs})}}
+        const x0=B.left+bw-R.left,y0=B.top+bw-R.top,w0=B.width-2*bw,h0=B.height-2*bw;if(w0<24||h0<24)continue;
+        box.push({im,x0,y0,w0,h0,rad:Math.max(0,(parseFloat(cs.borderTopLeftRadius)||0)-bw),fit:getComputedStyle(im).objectFit});im.style.visibility="hidden"}
+      const cv=await html2canvas(sl,{useCORS:true,scale:1.25,backgroundColor:"#ffffff",logging:false,scrollX:0,scrollY:-window.scrollY});
+      const kx=cv.width/R.width,ky=cv.height/R.height,overs=[];
+      for(const o of box){const d=jlCrop(o,cv,kx,ky);if(d)overs.push({data:d,x:o.x0/R.width,y:o.y0/R.height,w:o.w0/R.width,h:o.h0/R.height,src:o.im.getAttribute("src")})}
+      out.push({shot:cv.toDataURL("image/jpeg",.82),overs})}}
   finally{stage.innerHTML=""}
   return out}
 async function jlAddSlides(pp,shots,W,H){
@@ -3456,6 +3474,69 @@ async function jlPptxFx(blob){let Z;try{Z=await jlZip()}catch(_){return blob}
     Object.keys(z.files).forEach(n=>{if(z.files[n].dir)delete z.files[n]}); // papka yozuvlarisiz (OneDrive/PowerPoint Online uchun)
     return await z.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.presentationml.presentation",compression:"DEFLATE",compressionOptions:{level:5}})}
   catch(_){return blob}}
+</script>
+<script>
+/* ===== 🎬 VIDEO: butun taqdimot harakatlanadigan video bo'lib — Telegram va telefon galereyasida o'ynaydi =====
+   Har bir slayd: fon sekin yaqinlashadi, rasmlar ketma-ket paydo bo'lib harakatlanadi, jonli videolar (hayvonlar) o'ynaydi,
+   slaydlar silliq almashadi. Brauzerning o'zida yoziladi (MediaRecorder), internetga hech narsa yuborilmaydi. */
+function vidMime(){const L=["video/mp4;codecs=avc1.42E01E","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
+  try{if(window.MediaRecorder)for(const m of L)if(MediaRecorder.isTypeSupported(m))return m}catch(_){}return ""}
+const vLoad=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+function vEl(u){return new Promise(r=>{const v=document.createElement("video");v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute("playsinline","");v.preload="auto";
+  let ok=false;const fin=()=>{if(ok)return;ok=true;r(v.readyState>=2&&v.videoWidth?v:null)};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,10000);v.src=u;try{v.load()}catch(_){}})}
+// Chrome yozgan WebM faylida davomiylik bo'lmaydi — galereya va Telegram to'g'ri ko'rsatishi uchun qo'shiladi
+async function webmDur(blob,ms){try{const u=new Uint8Array(await blob.arrayBuffer());
+  const id=p=>{let l=1,m=128;while(l<=4&&!(u[p]&m)){l++;m>>=1}let v=0;for(let i=0;i<l;i++)v=v*256+u[p+i];return{l,v}};
+  const sz=p=>{let l=1,m=128;while(l<=8&&!(u[p]&m)){l++;m>>=1}let v=u[p]&(m-1),all=v===m-1;for(let i=1;i<l;i++){v=v*256+u[p+i];if(u[p+i]!==255)all=false}return{l,v,unk:all}};
+  let p=0,a=id(p);if(a.v!==0x1A45DFA3)return blob;let s=sz(p+a.l);p+=a.l+s.l+s.v;
+  a=id(p);if(a.v!==0x18538067)return blob;s=sz(p+a.l);p+=a.l+s.l;
+  for(let k=0;k<16&&p<u.length-8;k++){a=id(p);s=sz(p+a.l);const st=p+a.l+s.l;if(s.unk)return blob;
+    if(a.v===0x1549A966){const end=st+s.v;for(let q=st;q<end;){const b=id(q),c=sz(q+b.l);if(b.v===0x4489)return blob;q+=b.l+c.l+c.v}
+      const d=new Uint8Array(11);d.set([0x44,0x89,0x88]);new DataView(d.buffer).setFloat64(3,ms);
+      const n=new Uint8Array(8);n[0]=1;let t=s.v+11;for(let i=7;i>0;i--){n[i]=t%256;t=Math.floor(t/256)}
+      return new Blob([u.subarray(0,p+a.l),n,u.subarray(st,end),d,u.subarray(end)],{type:"video/webm"})}
+    p=st+s.v}}catch(_){}return blob}
+async function buildVideo(){
+  const mime=vidMime(),c=document.createElement("canvas");
+  if(!mime||!c.captureStream)throw new Error("bu telefon brauzeri video yozishni bilmaydi. PowerPoint (.pptx) faylidan foydalaning.");
+  const shots=await jlCapture("🎬 Video");
+  dlStatus("🎬 Video tayyorlanmoqda: rasmlar va jonli videolar yuklanmoqda…");
+  const four=deck.ratio==="4/3",W=four?800:960,H=four?600:540,S=[];
+  for(const sh of shots){const ov=[];
+    for(const o of sh.overs){const v0=deck.vids&&deck.vids[o.src],vid=v0&&v0.st==="ok"&&VURL[v0.id]?await vEl(VURL[v0.id]):null,im=await vLoad(o.data);
+      if(im||vid)ov.push({im,vid,x:o.x*W,y:o.y*H,w:o.w*W,h:o.h*H})}
+    const vl=ov.reduce((a,o)=>o.vid?Math.max(a,(isFinite(o.vid.duration)&&o.vid.duration>0?o.vid.duration:6)*1000):a,0);
+    S.push({bg:await vLoad(sh.shot),ov,dur:Math.round(Math.min(12000,Math.max(4200+ov.length*500,vl?vl+1800:0)))})}
+  c.width=W;c.height=H;const x=c.getContext("2d"),TR=700;
+  const draw=(s,t,al)=>{x.save();x.globalAlpha=al;const z=1+.03*Math.min(1,t/s.dur);x.setTransform(z,0,0,z,W*(1-z)/2,H*(1-z)/2);
+    if(s.bg)x.drawImage(s.bg,0,0,W,H);else{x.fillStyle="#fff";x.fillRect(0,0,W,H)}
+    s.ov.forEach((o,k)=>{const t0=300+k*600,a=Math.max(0,Math.min(1,(t-t0)/600));if(a<=0)return;const q=Math.min(1,Math.max(0,t-t0)/Math.max(1,s.dur-t0));
+      x.save();x.globalAlpha=al*a;x.beginPath();x.rect(o.x,o.y,o.w,o.h);x.clip();
+      if(o.vid&&o.vid.readyState>=2){const vw=o.vid.videoWidth,vh=o.vid.videoHeight,sc=Math.max(o.w/vw,o.h/vh);x.drawImage(o.vid,o.x+(o.w-vw*sc)/2,o.y+(o.h-vh*sc)/2,vw*sc,vh*sc)}
+      else if(o.im){const kb=1+.1*q,dx=(k%2?-1:1)*.025*o.w*q,w2=o.w*kb,h2=o.h*kb;x.drawImage(o.im,o.x-(w2-o.w)/2+dx,o.y-(h2-o.h)/2,w2,h2)}
+      x.restore()});
+    x.restore()};
+  const stream=c.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1200000}),parts=[];
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};const stopped=new Promise(r=>{rec.onstop=r});
+  let wl=null;try{wl=await navigator.wakeLock.request("screen")}catch(_){}
+  const vis=()=>{try{if(document.hidden){if(rec.state==="recording")rec.pause()}else if(rec.state==="paused")rec.resume()}catch(_){}};document.addEventListener("visibilitychange",vis);
+  const total=S.reduce((a,s)=>a+s.dur,0);let i=0,t=0,last=0,el=0;
+  const begin=k=>{S[k].ov.forEach(o=>{if(o.vid){try{o.vid.currentTime=0}catch(_){}const pr=o.vid.play();if(pr&&pr.catch)pr.catch(()=>{})}});
+    dlStatus(`🎬 Video yozilmoqda: ${k+1} / ${S.length} slayd (${Math.round(el/1000)} / ${Math.round(total/1000)} s). Ekranni o'chirmang va boshqa ilovaga o'tmang.`)};
+  x.fillStyle="#fff";x.fillRect(0,0,W,H);rec.start(1000);begin(0);
+  try{await new Promise(done=>{const step=now=>{if(!last)last=now;const dt=document.hidden?0:Math.min(100,now-last);last=now;t+=dt;el+=dt;
+      if(t>=S[i].dur){S[i].ov.forEach(o=>{if(o.vid)o.vid.pause()});i++;t=0;if(i>=S.length){done();return}begin(i)}
+      x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.fillStyle="#fff";x.fillRect(0,0,W,H);
+      if(i>0&&t<TR){draw(S[i-1],S[i-1].dur,1);draw(S[i],t,t/TR)}else draw(S[i],t,i?1:Math.min(1,.15+t/500));
+      requestAnimationFrame(step)};requestAnimationFrame(step)});
+    await new Promise(r=>setTimeout(r,400))}
+  finally{try{if(rec.state!=="inactive")rec.stop()}catch(_){}document.removeEventListener("visibilitychange",vis);try{wl&&wl.release()}catch(_){}
+    S.forEach(s=>s.ov.forEach(o=>{if(o.vid){o.vid.pause();o.vid.removeAttribute("src");try{o.vid.load()}catch(_){}}}))}
+  await stopped;dlStatus("🎬 Video fayli yig'ilmoqda…");
+  const type=mime.split(";")[0];let blob=new Blob(parts,{type});
+  if(type==="video/webm")blob=await webmDur(blob,el);
+  if(!blob.size)throw new Error("video yozilmadi. Qayta urinib ko'ring.");
+  return blob}
 </script>
 </body>
 </html>
