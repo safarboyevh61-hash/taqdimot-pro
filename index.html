@@ -1078,6 +1078,10 @@ body.ap[data-scr=home]{background:radial-gradient(90% 40% at 50% 100%,#06235c 0%
   .hm3g .hm-t img.hi{flex-basis:28%;width:28%}.hm3g .hm-t .hi.g{flex-basis:28%}.hm3g .hm-t .hi.g svg{width:38px;height:38px}.hm3g .hm-t img.kr{width:20px}
   .hm3g .hm-ch{flex-basis:24px;width:24px;height:24px}.hm3g .hm-ch svg{width:13px;height:13px}}
 </style>
+<style id="perfCss">
+/* tezlik (v41): ekrandan tashqaridagi kartalar chizilmaydi */
+#apTplG .tp-c{content-visibility:auto;contain-intrinsic-size:auto 150px}
+</style>
 </head>
 <body class="ap" data-scr="home">
 
@@ -1527,7 +1531,7 @@ const SH_T=[[0,5,5,825,215,0.444,0.952,0.188,0.812,220,"#efd9bd","#de9211","#e79
 /* ---------- Shablonlar: foydalanuvchi bergan rasmli fon shablonlari ---------- */
 const SH_CACHE={},SH_PENDING={},SH_TH={};let SH_OPEN=false,SH_IMG={k:-1,im:null};
 function shSheet(k){if(SH_IMG.k===k&&SH_IMG.im)return Promise.resolve(SH_IMG.im);
-  return new Promise(res=>{const im=new Image();im.onload=()=>{SH_IMG={k,im};res(im)};im.onerror=()=>res(null);im.src=SH_SHEETS[k]})}
+  return new Promise(res=>{const im=new Image();im.onload=()=>{const ok=()=>{SH_IMG={k,im};res(im)};(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(ok)};im.onerror=()=>res(null);im.src=SH_SHEETS[k]})}
 function mixHex(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),A=p(a),B=p(b);return"#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("")}
 // shablonni slayd foni sifatida chizish: keng banner — tepada sarlavha tasmasi, qolgani och fon; kvadratroq — butun slaydga
 function shDraw(c,W,H,n,im){const [k,x,y,w,h,ex0,ex1,ey0,ey1,lum,tint,a1,a2]=SH_T[n],asp=w/h;
@@ -1590,7 +1594,7 @@ async function shThumbs(){for(let k=0;k<SH_SHEETS.length;k++){const ns=SH_T.map(
     const T=SH_T[n],asp=T[3]/T[4];c.fillStyle="rgba(255,255,255,.92)";
     if(asp>2.05){const bh=Math.min(320/asp,180*.36);c.fillRect(14,bh+12,190,180-bh-28);c.fillStyle="#1a3ba0";for(let j=0;j<4;j++)c.fillRect(24,bh+22+j*12,150-(j%2)*40,6)}
     else{c.fillRect(70,60,180,80);c.fillStyle="#1a3ba0";for(let j=0;j<4;j++)c.fillRect(82,72+j*14,140-(j%2)*40,6)}
-    SH_TH[n]=cn.toDataURL("image/jpeg",.72);const img=document.querySelector(`#gallery .dz[data-d="sh-${n}"] img`);if(img)img.src=SH_TH[n]}
+    SH_TH[n]=await tpUrl(cn,.72);const img=document.querySelector(`#gallery .dz[data-d="sh-${n}"] img`);if(img)img.src=SH_TH[n];await new Promise(r=>setTimeout(r,16))}
   await new Promise(r=>setTimeout(r,30))}}
 /* ---------- galereya ---------- */
 function thumbInfo(c,w,h,p,photo){
@@ -1632,7 +1636,7 @@ function buildGallery(){
   if(!SH_OPEN){const o=document.createElement("button");o.className="dz up sh-open";o.type="button";o.innerHTML="<b>🖼</b><span>Shablonlarni ko'rsatish</span>";g.append(o)}
   else{SH_T.forEach((t,n)=>{const b=document.createElement("button");b.className="dz";b.dataset.d="sh-"+n;b.setAttribute("aria-pressed",deck.design==="sh-"+n);
     const im=document.createElement("img");im.alt="";if(SH_TH[n])im.src=SH_TH[n];else im.style.background="#dde3ea";b.append(im);const s=document.createElement("span");s.textContent=tpShName(n);b.append(s);g.append(b)});
-    if(Object.keys(SH_TH).length<SH_T.length&&!window._shRun){window._shRun=1;shThumbs().finally(()=>{window._shRun=0})}}
+    if(Object.keys(SH_TH).length<SH_T.length&&!window._shRun){window._shRun=1;setTimeout(()=>shThumbs().finally(()=>{window._shRun=0}),350)}}
   sec("O'z dizayningiz");
   const u=document.createElement("button");u.className="dz up";u.dataset.d="custom";u.setAttribute("aria-pressed",deck.design==="custom");
   if(custom.cover){u.className="dz";u.innerHTML=`<img src="${custom.cover}" alt=""><span>O'z dizaynim</span>`}
@@ -3022,7 +3026,12 @@ async function tpCompose(T,p,ratio){const im=await tpLoad(T);if(!im){TP_NOIMG[T.
   const rr=(ins,r,lw)=>{c.lineWidth=lw;c.strokeStyle=gg;c.beginPath();const x0=ins,y0=ins,x1=W-ins,y1=H-ins;c.moveTo(x0+r,y0);c.arcTo(x1,y0,x1,y1,r);c.arcTo(x1,y1,x0,y1,r);c.arcTo(x0,y1,x0,y0,r);c.arcTo(x0,y0,x1,y0,r);c.closePath();c.stroke()};
   c.save();c.lineWidth=sc*.9;c.strokeStyle="rgba(0,0,0,.45)";c.strokeRect(0,0,W,H);c.restore();
   rr(sc*.42,sc*2.2,sc*.5);rr(sc*1.02,sc*1.7,sc*.14);
-  TP_BG[T.id+"|"+p+"|"+ratio]=cn.toDataURL("image/jpeg",.86);return true}
+  TP_BG[T.id+"|"+p+"|"+ratio]=await tpUrl(cn,.86);return true}
+function tpUrl(cn,q){return new Promise(r=>{try{cn.toBlob(b=>r(b?URL.createObjectURL(b):cn.toDataURL("image/jpeg",q)),"image/jpeg",q)}catch(_){r(cn.toDataURL("image/jpeg",q))}})}
+let TP_CQ=Promise.resolve();
+function tpQ(f){const r=TP_CQ.then(()=>new Promise(res=>setTimeout(res,30))).then(f);TP_CQ=r.catch(()=>{});return r}
+function tpSwap(key){const u=TP_BG[key];if(!u)return;document.querySelectorAll('[data-tpk="'+key+'"]').forEach(el=>{if(el.tagName==="IMG"){if(el.getAttribute("src")!==u)el.src=u;return}
+  const im=document.createElement("img");im.className="tp-bg";im.alt="";im.dataset.tpk=key;im.src=u;el.replaceWith(im)})}
 function tpKick(){clearTimeout(TP_RT);TP_RT=setTimeout(()=>{try{render()}catch(_){}},60)}
 async function tpEnsure(s,i){const T=tpT();if(!T)return;const p=tpPanel(s,i),key=T.id+"|"+p+"|"+deck.ratio;if(!TP_BG[key])await tpCompose(T,p,deck.ratio)}
 const TP_ICO=(()=>{const f="#f3cf6e",k="#7a520e",sv=b=>`<svg viewBox="0 0 24 24" fill="${f}" stroke="${k}" stroke-width=".7" stroke-linejoin="round">${b}</svg>`;return[
@@ -3037,9 +3046,9 @@ const TP_ICO=(()=>{const f="#f3cf6e",k="#7a520e",sv=b=>`<svg viewBox="0 0 24 24"
 function tpHex(T,inner,cls){const m=T.pal.m;return`<div class="${cls}"><svg viewBox="0 0 100 100"><defs><linearGradient id="tpg${cls}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7df90"/><stop offset=".5" stop-color="#b9892e"/><stop offset="1" stop-color="#f3d27a"/></linearGradient></defs><polygon points="50,4 92,27 92,73 50,96 8,73 8,27" fill="${tpMix(m,"#000000",.25)}" stroke="url(#tpg${cls})" stroke-width="8"/></svg>${inner}</div>`}
 const TP_CHK='<svg viewBox="0 0 24 24" style="position:absolute;inset:22%;width:56%;height:56%"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#f3cf6e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function tpHTML(s,i){const T=tpT(),p=tpPanel(s,i),Hs=deck.ratio==="16/9"?56.25:75,L=tpLay(T,p,Hs),key=T.id+"|"+p+"|"+deck.ratio;
-  if(!TP_BG[key]&&!TP_PEND[key]){TP_PEND[key]=1;tpCompose(T,p,deck.ratio).then(ok=>{delete TP_PEND[key];if(ok&&tpT()===T)tpKick();
+  if(!TP_BG[key]&&!TP_PEND[key]){TP_PEND[key]=1;tpQ(()=>TP_BG[key]?true:tpCompose(T,p,deck.ratio)).then(ok=>{delete TP_PEND[key];if(ok)tpSwap(key);
     else if(!ok&&!window._tpWarn){window._tpWarn=1;try{setStatus("Shablon rasmlari yuklanmadi — internetni tekshirib, sahifani qayta oching.",true)}catch(_){}}})}
-  const bg=TP_BG[key]?`<img class="tp-bg" src="${TP_BG[key]}" alt="">`:'<div class="tp-fb"></div>';
+  const bg=TP_BG[key]?`<img class="tp-bg" data-tpk="${key}" src="${TP_BG[key]}" alt="">`:`<div class="tp-fb" data-tpk="${key}"></div>`;
   const vars=slideVars(DARS)+tpVars(T),f=x=>x.toFixed(2)+"cqw",no=tpHex(T,`<b>${i+1}</b>`,"tp-no");
   if(s.type==="cover"){
     const cw=L.cr-L.cl,ph=Hs*(L.wide?.44:.38),pt=Hs*(L.wide?.1:.13);
@@ -3210,13 +3219,20 @@ function fitTtl(el){el.querySelectorAll(".dr-hd>span,.sh-ttl>span,.dr-tab,.tp-hd
   const bad=()=>t.scrollHeight>av+.5||t.scrollWidth>t.clientWidth+1;
   if(bad()){srch(bad,.55);if(bad()){const lh=parseFloat(getComputedStyle(t).lineHeight)||lh0;t.style.removeProperty("display");t.style.webkitLineClamp=String(Math.max(1,Math.floor(av/lh)))}}})}
 function fitAll(root){root.querySelectorAll(".slide").forEach(fit)}
-// 🔁 qayta sig'dirish: rasm yuklanganda, shrift kelganda, slayd ko'rinib o'lchami o'zgarganda
-(function(){const Q=new Set();let raf=0;const run=()=>{raf=0;const L=[...Q];Q.clear();L.forEach(x=>{if(x.isConnected)fit(x)})};
-  const need=x=>{if(!x)return;Q.add(x);if(!raf)raf=requestAnimationFrame(run)};
-  const RO=window.ResizeObserver?new ResizeObserver(es=>es.forEach(e=>{const w=Math.round(e.contentRect.width);if(e.target._fw!==w){e.target._fw=w;need(e.target)}})):null;
+// 🔁 qayta sig'dirish — navbat bilan (telefon qotmasin): avval ekrandagi slaydlar, qolganlari bo'sh paytda bittadan
+(function(){const Q=new Set();let tm=0;
+  const near=x=>{const r=x.getBoundingClientRect();return r.bottom>-300&&r.top<innerHeight+300};
+  const pick=()=>{let far=null;for(const x of Q){if(!x.isConnected){Q.delete(x);continue}if(!x.getClientRects().length)continue;if(near(x))return x;if(!far)far=x}return far};
+  const run=()=>{tm=0;const t0=performance.now();let x;
+    while((x=pick())){Q.delete(x);try{fit(x)}catch(_){}x._fw=Math.round(x.getBoundingClientRect().width);if(performance.now()-t0>12)break}
+    if(pick())sched(false)};
+  const sched=fast=>{if(tm)return;tm=1;if(fast)requestAnimationFrame(run);else setTimeout(()=>requestAnimationFrame(run),24)};
+  const need=x=>{if(!x)return;Q.add(x);sched(true)};
+  window.fitLater=root=>{if(!root)return;root.querySelectorAll(".slide").forEach(x=>Q.add(x));sched(true)};
+  const RO=window.ResizeObserver?new ResizeObserver(es=>es.forEach(e=>{const w=Math.round(e.contentRect.width);if(!w)return;if(e.target._fw!==w){e.target._fw=w;need(e.target)}})):null;
   const hook=root=>{if(!root||!RO)return;const sc=()=>root.querySelectorAll(".slide").forEach(x=>{if(!x._ro){x._ro=1;RO.observe(x)}});sc();new MutationObserver(sc).observe(root,{childList:true,subtree:true})};
   const go=()=>{hook(document.getElementById("deck"));hook(document.getElementById("showSlot"))};if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();
-  document.addEventListener("load",e=>{const t=e.target;if(t&&t.tagName==="IMG"&&t.closest&&!t.closest("#stage")){const x=t.closest(".slide");if(x)need(x)}},true);
+  document.addEventListener("load",e=>{const t=e.target;if(t&&t.tagName==="IMG"&&!t.classList.contains("tp-bg")&&t.closest&&!t.closest("#stage")){const x=t.closest(".slide");if(x)need(x)}},true);
   if(document.fonts&&document.fonts.addEventListener)document.fonts.addEventListener("loadingdone",()=>document.querySelectorAll("#deck .slide,#showSlot .slide").forEach(need));
 })();
 function render(){
@@ -3234,7 +3250,7 @@ function render(){
   const src=deck.sources||[];
   const cands=(deck.cands||[]).length?`<div style="margin-top:8px">Boshqa maqoladan yaratish: ${deck.cands.map(t=>`<button data-pick="${esc(t)}" style="padding:4px 10px;font-size:13px;margin:4px 4px 0 0">${esc(t)}</button>`).join("")}</div>`:"";
   $("#links").innerHTML=(src.length?`Manbalar: ${src.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`).join(" · ")} · <a href="https://www.google.com/search?q=${encodeURIComponent(deck.title)}" target="_blank" rel="noopener">Google'da batafsil</a>`:"")+cands;
-  requestAnimationFrame(()=>fitAll(dk));
+  fitLater(dk);
 }
 document.addEventListener("input",e=>{const el=e.target.closest("[data-i]");if(!el||!el.isContentEditable)return;const s=deck.slides[+el.dataset.i];
   if(el.dataset.cap!==undefined){s.caps=s.caps||[];s.caps[+el.dataset.cap]=el.textContent.trim()}
@@ -3557,7 +3573,7 @@ if(!deck.slides.length){deck.slides=[
   {type:"content",title:"Geografik o'rni",bullets:["Avstraliya janubiy yarimsharda joylashgan eng kichik materik bo'lib, maydoni taxminan 7,7 mln km².","Materikni g'arbdan Hind okeani, sharqdan Tinch okeani o'rab turadi.","Eng shimoliy nuqtasi — Keyp-York burni, eng janubiy nuqtasi — Janubi-Sharqiy burun."],imgs:[]},
   {type:"content",title:"O'rganilish tarixi",bullets:["1606-yilda gollandiyalik Villem Yanszon materik qirg'oqlariga birinchi bo'lib yetib keldi.","1642-yilda Abel Tasman Tasmaniya orolini kashf etdi.","1770-yilda Jeyms Kuk materikning sharqiy qirg'og'ini o'rgandi."],imgs:[]}]}
 buildGallery();render();
-document.fonts&&document.fonts.ready.then(()=>{buildGallery();fitAll($("#deck"))});
+document.fonts&&document.fonts.ready.then(()=>{buildGallery();fitLater($("#deck"))});
 </script>
 
 <script>
@@ -4461,7 +4477,7 @@ function reveal(el){if(!el||!el.closest)return;const s=el.closest(".scr");if(!s)
 let tplF="all",tplDirty=true,tplT=0;
 function dzName(){const x=d.querySelector('#gallery .dz[aria-pressed="true"] span'),e=$("#apDzN");if(e)e.textContent=x?"Tanlangan: "+x.textContent:"Shablon tanlang"}
 function onShow(n){
-  if(n==="files"||n==="design"){requestAnimationFrame(()=>{try{fitAll($("#deck"))}catch(_){}})}
+  
   if(n==="create"){dzName();try{window.apLockF&&apLockF()}catch(_){}}
   if(n==="tpl"){try{if(!SH_OPEN){SH_OPEN=true;buildGallery()}}catch(_){}if(tplDirty)tplBuild();try{tpAutoChip()}catch(_){}}
   if(n==="pro"){try{$("#apProNarx").textContent=aiSom(AI_NG)}catch(_){}const bx=$("#aiSwBox");$("#apProGo").hidden=!(bx&&!bx.hidden);
