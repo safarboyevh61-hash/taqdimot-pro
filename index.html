@@ -2702,7 +2702,7 @@ function qDoc(raw,topic){
   if(pE<0){const fi=body.findIndex(Boolean);if(fi>=0){const l=body[fi],nx=body.slice(fi+1).find(Boolean)||"",tk=qNorm(topic||"").split(" ").filter(w=>w.length>3);
       const up=(l.match(/\p{Lu}/gu)||[]).length>(l.match(/\p{Ll}/gu)||[]).length;
       const mz=/^(mavzu|мавзу|тема|topic)\s*[:.\-–—]\s*/i.test(l);
-      if(l.length<180&&!/[.!?…]$/.test(l)&&nx.length>60&&(mz||up||tk.filter(w=>qNorm(l).includes(w.slice(0,5))).length>=Math.min(2,tk.length))){out.title=l.replace(/^(mavzu|мавзу|тема|topic)\s*[:.\-–—]\s*/i,"");body=body.slice(fi+1)}}}
+      if(l.length<180&&!/[.!?…]$/.test(l)&&!qHead(l)&&((up&&l.replace(/[^\p{L}]/gu,"").length>=8&&!/^\d/.test(l))||nx.length>60)&&(mz||up||tk.filter(w=>qNorm(l).includes(w.slice(0,5))).length>=Math.min(2,tk.length))){out.title=l.replace(/^(mavzu|мавзу|тема|topic)\s*[:.\-–—]\s*/i,"");body=body.slice(fi+1)}}}
   out.body=body.filter(Boolean).join("\n");
   // 3) reja bandlari bo'yicha matnni bo'lish
   if(out.plan.length){let pos=[];
@@ -2733,7 +2733,8 @@ function qDoc(raw,topic){
   return out}
 // rejasiz matn: sarlavhalar bo'yicha bo'limlar (gaplar to'liq saqlanadi)
 function qSecs(body){const lines=String(body||"").split("\n").map(x=>x.trim());const out=[];let cur={head:"",buf:[]};
-  const isHead=(l,next)=>{if(!l||l.length>80||l.length<3)return false;if(/[.,;:!?…]$/.test(l))return false;if(!/^[\p{Lu}\d§]/u.test(l))return false;if(/^\d+$/.test(l))return false;return !!(next&&next.length>40)};
+  const DUP=new Map();lines.forEach(l=>{if(l)DUP.set(l,(DUP.get(l)||0)+1)});
+  const isHead=(l,next)=>{if(!l||l.length>80||l.length<3)return false;if(qIsCap(l)||DUP.get(l)>1)return false;if(/[.,;:!?…]$/.test(l))return false;if(!/^[\p{Lu}\d§]/u.test(l))return false;if(/^\d+$/.test(l))return false;return !!(next&&next.length>40)};
   lines.forEach((l,i)=>{if(isHead(l,lines[i+1]||"")){if(cur.buf.length)out.push(cur);cur={head:l.replace(/^(\d+(\.\d+)*[.)]|§\s*\d+\.?)\s*/,"").trim(),buf:[]}}else if(l)cur.buf.push(l)});
   if(cur.buf.length)out.push(cur);
   return out.map(x=>({head:x.head,sents:userSents(x.buf.join("\n")),src:""})).filter(x=>x.sents.length)}
@@ -2796,10 +2797,98 @@ async function topicRefs(lang,topic){
     for(const c of cands){if(refs.filter(r=>!/https?:\/\//.test(r)).length>=8)break;const r=await resolveTitle("en",c);if(!r)continue;
       refsFrom(await wikitext("en",r.title)).books.forEach(b=>{const k=norm(b).slice(0,40);if(!have.has(k)){have.add(k);refs.splice(refs.filter(x=>!/https?:\/\//.test(x)).length,0,b)}})}}catch(_){}}
   return refs.slice(0,14)}
+/* ===== 🎯 Tanlangan betlar soniga moslash (v45): matndan mavzuga oid eng muhim gaplar; rasm izohlari va havola raqamlari olinmaydi ===== */
+// rasm/jadval izohi («1-rasm. …», «… tasviriy rasm») — sarlavha ham, slayd matni ham emas
+const QCAP=/^\d+\s*[-–.]?\s*(rasm|расм|рис|jadval|жадвал|sxema|схема|diagramma|диаграмма|xarita|харита|surat|сурат)(?=[\s.:)\-–—]|$)|^(rasm|расм|рис\.?|jadval|жадвал|sxema|схема|diagramma|xarita|харита|surat|сурат)\s*\d+|(tasviriy rasm|rasmda|rasmi|fotosurati|surati)\s*[.:]?$/i;
+function qIsCap(l){l=String(l||"").trim();return l.length>0&&l.length<=150&&QCAP.test(l)}
+// matnni tozalash: «[3]», «[1, 25-b.]» kabi havola raqamlari; rasm belgisi yonidagi izoh qatorlari
+function qClean(t){
+  t=String(t||"").replace(/[ \t]*\[\d{1,3}(?:\s*[,;–-]\s*\d{1,3})*(?:\s*[,;]\s*\d{1,4}(?:\s*[-–]\s*\d{1,4})?\s*[-–]?\s*(?:b|bet|s|с|p|pp)\.?)?\]/g,"");
+  const L=t.split("\n"),drop=new Set();
+  L.forEach((l,i)=>{if(!PDF_MK.test(l))return;
+    for(const d of [1,-1]){let j=i+d;while(j>=0&&j<L.length&&!L[j].trim())j+=d;if(j>=0&&j<L.length&&!PDF_MK.test(L[j])&&qIsCap(L[j]))drop.add(j)}});
+  return L.filter((_,i)=>!drop.has(i)).join("\n")}
+// rasm o'rnini belgilovchi gaplar (tanlashda albatta qoladi)
+function qAnchors(marks){const A=[];(marks||[]).forEach(m=>{const b=qNorm(m.b||"").split(" ").filter(Boolean),a=qNorm(m.a||"").split(" ").filter(Boolean);
+  if(b.length>=3)A.push(" "+b.slice(-Math.min(5,b.length)).join(" ")+" ");else if(a.length>=3)A.push(" "+a.slice(0,Math.min(5,a.length)).join(" ")+" ")});return A}
+// bir bo'limdan k ta slaydga sig'adigan eng muhim gaplar (tartibi saqlanadi)
+function qScores(S,title,topic,anc){
+  const st=x=>keyStems(x).map(w=>w.slice(0,5)),tf=new Map();S.forEach(s=>new Set(st(s)).forEach(w=>tf.set(w,(tf.get(w)||0)+1)));
+  const tk=new Set(st((title||"")+" "+(topic||"")));
+  return S.map((s,i)=>{const w=st(s);let v=0;w.forEach(x=>{v+=Math.sqrt(tf.get(x)||1);if(tk.has(x))v+=2});v=v/Math.sqrt(w.length+3);
+    if(i===0)v+=1.5;else if(i===1)v+=.5;
+    if(/\s[—–]\s|\b(deyiladi|ataladi|hisoblanadi|tushuniladi|iborat|degani|demakdir)\b/i.test(s))v+=.8;
+    if(s.length<45)v-=1;if(s.length>420)v-=.6;if(qIsCap(s))v-=4;
+    const ns=" "+qNorm(s)+" ";if((anc||[]).some(a=>ns.includes(a)))v+=100;
+    return{i,v}}).sort((a,b)=>b.v-a.v)}
+function qPick(S,k,title,topic,anc){if(!S.length)return S;const sc=qScores(S,title,topic,anc),pick=new Set();
+  for(const o of sc){pick.add(o.i);if(chunk({sents:S.filter((_,j)=>pick.has(j))}).length>k)pick.delete(o.i)}
+  if(!pick.size)pick.add(sc[0].i);
+  return S.filter((_,j)=>pick.has(j))}
+// belgilar soni bo'yicha tanlash (tartib saqlanadi)
+function qPickChars(S,B,title,topic,anc){if(!S.length)return S;const sc=qScores(S,title,topic,anc),pick=new Set();let used=0;
+  for(const o of sc){const l=S[o.i].length+20;if(used+l<=B||!pick.size){pick.add(o.i);used+=l}}
+  return S.filter((_,j)=>pick.has(j))}
+function qUnits(pl){const U=[];pl.forEach(it=>{if(it.subs.length){if(it.sents.length>=(it.keep?1:2))U.push({o:it,t:it.title});it.subs.forEach(sb=>U.push({o:sb,t:sb.title}))}else U.push({o:it,t:it.short||it.title})});return U}
+// reja bo'limlariga betlarni matn hajmiga qarab taqsimlash; ortig'ini qisqartirish
+function qFitCount(pl,C,topic,marks){
+  const U=qUnits(pl);
+  const cnt=x=>x.length?chunk({sents:x}).length:1,need=U.map(u=>cnt(u.o.sents)),T=need.reduce((a,b)=>a+b,0);
+  if(!U.length||T<=C)return{cut:0,T,U:U.length};
+  C=Math.max(C,U.length);
+  const L=U.map(u=>Math.max(1,u.o.sents.join(" ").length)),tot=L.reduce((a,b)=>a+b,0);
+  const al=U.map((u,i)=>Math.min(need[i],Math.max(1,Math.floor(C*L[i]/tot))));
+  let left=C-al.reduce((a,b)=>a+b,0);
+  while(left>0){let bi=-1,bv=0;U.forEach((u,i)=>{if(al[i]<need[i]){const v=L[i]/al[i];if(v>bv){bv=v;bi=i}}});if(bi<0)break;al[bi]++;left--}
+  while(al.reduce((a,b)=>a+b,0)>C){let bi=-1,bv=1;al.forEach((a,i)=>{if(a>bv){bv=a;bi=i}});if(bi<0)break;al[bi]--}
+  const anc=qAnchors(marks);let cut=0;
+  U.forEach((u,i)=>{if(need[i]<=al[i])return;const keep=qPick(u.o.sents,al[i],u.t,topic,anc);cut+=u.o.sents.length-keep.length;u.o.sents=keep});
+  return{cut,T,U:U.length}}
+// fayl yuklanganda: mavzu maydoniga hujjat sarlavhasi
+function qSetTopic(text){try{const d=qDoc(String(text||"").split("\n").filter(l=>!PDF_MK.test(l)).join("\n"),"");let t=String(d.title||"").replace(/\s+/g," ").replace(/[.:;,]+$/,"").trim();
+  if(t.length<4||t.length>150||!/\p{L}{3}/u.test(t)||qIsCap(t))return"";const e=document.getElementById("topic");if(e){e.value=t;e.dispatchEvent(new Event("input",{bubbles:true}))}return t}catch(_){return""}}
+// bir bo'limning ketma-ket slaydlarida matnni joyga qarab taqsimlash: rasmli slaydga kamroq, rasmsizga ko'proq
+//  (rasm turgan gap o'sha slaydda qoladi) — shunda hamma slaydda yozuv bir xil va katta bo'ladi
+function qRefill(slides,U0,topic){const fam=design().fam,wN=k=>!k?1:k>1?.5:(fam==="dars"?.62:.7),CAPI=CH.len*.85,CAPF=CAPI/wN(1);
+  const runs=[];for(let i=0;i<slides.length;){const s=slides[i];if(!(s.type==="content"&&!s.kind)||s.empty){i++;continue}
+    let j=i+1;while(j<slides.length&&slides[j].type==="content"&&!slides[j].kind&&!slides[j].empty&&slides[j].title===s.title)j++;runs.push(slides.slice(i,j));i=j}
+  let ui=0;
+  runs.forEach(run=>{const T=run[0].title;let u=-1;for(let k=ui;k<U0.length;k++)if(T===U0[k].t||T.endsWith(". "+U0[k].t)){u=k;break}if(u<0)return;ui=u+1;
+    const O=U0[u].s;if(!O.length)return;const m=run.length;
+    // rasmlar: matndagi o'z gapiga bog'langan; bog'lanmaganlari (galereya rasmlari) — keyin rasmsiz slaydlarga
+    const IM=[];run.forEach(x=>{const A=x._ancs||[];imgs(x).forEach(url=>{const a=A.find(z=>z.u===url);IM.push({u:url,a:a?a.a:""})})});
+    const anc=IM.map(z=>z.a).filter(Boolean),iS=Math.min(m,IM.length);
+    const B=(m-iS)*CAPF+iS*CAPI*(IM.length>m?.8:1);
+    const S=qPickChars(O,B,U0[u].t,topic,anc);if(S.length<m)return;
+    IM.forEach(z=>{z.ix=z.a?S.findIndex(q=>(" "+qNorm(q)+" ").includes(z.a)):-1});
+    const P=[0];S.forEach(x=>P.push(P[P.length-1]+x.length+20));
+    const nIn=(b,e)=>IM.filter(z=>z.ix>=b&&z.ix<e).length,free=IM.filter(z=>z.ix<0).length;
+    const n=S.length,INF=1e18,BB=[...Array(m+1)].map(()=>new Array(n+1).fill(INF)),K=[...Array(m+1)].map(()=>new Array(n+1).fill(-1));BB[0][0]=0;
+    for(let q=1;q<=m;q++)for(let e=q;e<=n-(m-q);e++)for(let b=q-1;b<e;b++){if(BB[q-1][b]>=INF)continue;
+      const v=Math.max(BB[q-1][b],(P[e]-P[b])/wN(nIn(b,e)));if(v<BB[q][e]){BB[q][e]=v;K[q][e]=b}}
+    if(BB[m][n]>=INF)return;
+    const hadNo=run.some(x=>x.noimg),R=[];for(let q=m,e=n;q>=1;q--){const b=K[q][e];R[q-1]=[b,e];e=b}
+    run.forEach((x,q)=>{const[b,e]=R[q];x.bullets=S.slice(b,e);x.imgs=IM.filter(z=>z.ix>=b&&z.ix<e).map(z=>z.u)});
+    // bog'lanmagan rasmlar: rasmsiz slaydlarga ketma-ket
+    IM.filter(z=>z.ix<0).forEach(z=>{const t=run.find(x=>!x.imgs.length)||run[0];t.imgs.push(z.u)});
+    run.forEach(x=>{x.imgs=x.imgs.slice(0,4);x.img="";if(fam==="dars")x.side=x.imgs[0]||"";if(x.imgs.length)delete x.noimg;else if(hadNo)x.noimg=true})});
+  slides.forEach(s=>{delete s._ancs})}
+/* ===== 🔠 Yozuv o'lchami — barcha matnli slaydlarda bir xil ===== */
+const KF=new WeakMap();let KU_ON=null;
+function uniSlide(el){const e=el.querySelector("[contenteditable][data-i]");if(!e)return null;const so=deck.slides[+e.dataset.i];return so&&so.type==="content"&&(!so.kind||so.kind==="xulosa")?so:null}
+// umumiy o'lcham: matnli slaydlarning ko'pchiligiga (80%) sig'adigani; juda zich 1–2 slayd o'zicha kichrayadi, qolganlari bir xil
+function kuNow(){const v=[];deck.slides.forEach(s=>{const x=KF.get(s);if(x!=null)v.push(x)});if(!v.length)return Infinity;v.sort((a,b)=>a-b);
+  return Math.min(1.3,v.length<5?v[0]:v[Math.floor(v.length*.2)])}
+function fitUni(el,k){el._kf=k;const so=uniSlide(el);
+  if(!so){el.style.setProperty("--k",k.toFixed(3));return}
+  if(el.closest&&el.closest("#deck"))KF.set(so,k);
+  const ku=kuNow();el.style.setProperty("--k",Math.min(k,ku).toFixed(3));
+  if(ku!==KU_ON){KU_ON=ku;document.querySelectorAll("#deck .slide,#showSlot .slide").forEach(x=>{if(x!==el&&x._kf!=null&&uniSlide(x))x.style.setProperty("--k",Math.min(x._kf,ku).toFixed(3))})}}
+
 async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(topic)&&jumaBugun()&&!window.TP_TOK){setStatus("📅 Bugun Juma ekanini tekshiryapman…");await tpVaqtTekshir(9000)}if(!canCreate(topic)){needCode();return}
   CH=design().fam==="dars"?{n:4,len:560}:{n:5,len:640};const t=$("#manual").value.trim();if(!t){setStatus("Avval PDF, skrinshot yoki matn orqali ma'lumot bering.",true);return}
   if(!xrCheck())return;
-  const QM=qMarks(t),D=qDoc(QM.text,topic),own=xrOwn();
+  const QM=qMarks(qClean(t)),D=qDoc(QM.text,topic),own=xrOwn();
   const title=cap(topic||D.title||"Taqdimot"),n=+$("#count").value,pm=$("#planType").value,wantItems=+$("#planCount").value;
   let pl=null,mode=pm,note="";
   if(D.units.length){mode="manual";
@@ -2827,25 +2916,26 @@ async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(top
     const xs=own.x||(D.x.length?D.x:null);let rs=own.r||(D.r.length?D.r:null);const rsFrom=own.r?"own":D.r.length?"text":"net";
     if(!rs){rs=[];try{const q=topic||D.title;if(q){setStatus("📚 Mavzuga oid adabiyotlar qidirilmoqda…");rs=await topicRefs2(lang,q)}}catch(_){}
       if(deck.srcRef)rs=[deck.srcRef].concat(rs)}
-    // matn to'liq sig'sin: betlar soni kerak bo'lsa oshiriladi
-    const cnt=x=>x.length?chunk({sents:x}).length:1;let tot=0;
-    pl.forEach(it=>{if(it.subs.length){if(it.sents.length>=(it.keep?1:2))tot+=cnt(it.sents);it.subs.forEach(sb=>tot+=cnt(sb.sents))}else tot+=cnt(it.sents)});
-    const nE=Math.max(n,tot+3+Math.ceil(rs.length/8));
+    // tanlangan betlar soni saqlanadi: muqova + reja + xulosa + adabiyotlar, qolgani — bo'limlarga; ortiqcha matndan eng muhimi tanlanadi
+    let xs2=xs;if(xs2&&!own.x&&chunk({sents:xs2}).length>1)xs2=qPick(xs2,1,"Xulosa",topic||title,[]);
+    const nX=xs2?Math.max(1,chunk({sents:xs2}).length):1,nR=Math.ceil(rs.length/8),fixed=2+nX+nR;
+    const U0=qUnits(pl).map(u=>({t:u.t,s:u.o.sents.slice()})),FC=qFitCount(pl,Math.max(1,n-fixed),topic||title,QM.marks);
+    const nE=Math.max(n,FC.U+fixed)-(nX-1);
     const r=buildPlanSlides(title,pl.map(it=>({head:it.title,sents:it.sents.concat(...it.subs.map(sb=>sb.sents))})),pl,mode,pool,nE,[],rs);
     r.slides.forEach((x,i)=>{if(x.type==="content"&&!x.kind&&i%2===0&&x.imgs&&x.imgs[0])x.side=x.imgs[0]});
     let placed=0,myP=0;
     const putSrc=()=>QM.marks.length?qPlaceMarks(r.slides,QM.marks):placeSrcImgs(r.slides);
     if(MO){mineClear(r.slides);placed=putSrc();myP=placeMyImgs(r.slides);mineGaps(r.slides);pool=MY_IMGS.map(z=>z.url).concat(SRC_IMGS.map(z=>z.url))}
     else{placed=putSrc();if(placed)pool=SRC_IMGS.map(z=>z.url).concat(pool);myP=placeMyImgs(r.slides);if(myP)pool=MY_IMGS.map(z=>z.url).concat(pool)}
-    if(xs)r.slides=xrSet(r.slides,xs,null);
+    if(MO||!pool.length)qRefill(r.slides,U0,topic||title);r.slides.forEach(x=>{delete x._ancs});if(xs2)r.slides=xrSet(r.slides,xs2,null);
     deck=Object.assign(deck,{title,slides:r.slides,sources:[],pool,jonli:false,vids:{},mineOnly:MO});save();render();consumeCredit(topic);
-    const S=r.slides.length,msg=[`Tayyor: ${S} ta slayd — matningiz to'liq kiritildi`];if(note)msg.push(note);
+    const S=r.slides.length,msg=[`Tayyor: ${S} ta slayd`+(FC.cut?` — ${n} betga sig'ishi uchun matndan mavzuga oid eng muhim gaplar tanlandi (to'liq matnga taxminan ${FC.T+fixed} bet kerak edi)`:" — matningiz to'liq kiritildi")];if(note)msg.push(note);
     msg.push(own.x?"xulosa — o'zingiz yozgan":D.x.length?"xulosa — matningizdagi":"xulosa — matningizdan");
     msg.push(rsFrom==="own"?`adabiyotlar — o'zingiz yozgan (${rs.length} ta)`:rsFrom==="text"?`adabiyotlar — matningizdagi (${rs.length} ta)`:rs.length?`adabiyotlar — faqat shu mavzuga oid (${rs.length} ta)`:"mavzuga aniq mos adabiyot topilmadi — «Foydalanilgan adabiyotlar»da «✍️ O'zim yozaman»ni tanlab yozing");
     const pdfW=QM.marks.length?`fayldagi ${placed} ta rasm o'z joyiga qo'yildi`:`${placed} ta rasm PDF/skrinshotlardan`;
     if(MO)msg.push([placed?pdfW:"",MY_IMGS.length?`siz tanlagan ${MY_IMGS.length} ta rasm`:""].filter(Boolean).join(", ")+" — internetdan rasm qo'shilmadi");
     else{if(placed)msg.push(pdfW);if(myP)msg.push(`${myP} ta o'z rasmingiz qo'yildi`)}
-    if(S>n)msg.push(`matn to'liq sig'ishi uchun ${n} emas, ${S} ta bet bo'ldi`);
+    if(S>n)msg.push(`rejada ${FC.U} ta band bor — har biriga kamida bitta slayd kerak, shuning uchun ${n} emas, ${S} ta bet bo'ldi`);
     if(r.empty)msg.push(`${r.empty} ta band uchun matnda ma'lumot topilmadi — o'zingiz to'ldiring`);
     setStatus(msg.join("; ")+".",!!r.empty||(rsFrom==="net"&&!rs.length));
     window.scrollTo({top:$("#deck").offsetTop-10,behavior:"smooth"})}
@@ -2979,7 +3069,7 @@ async function pdfPageImgs(pg){const out=[];try{
         const store=n.startsWith("g_")?pg.commonObjs:pg.objs;im=await new Promise(res=>{let done=0;const fin=v=>{if(!done){done=1;res(v)}};try{store.get(n,fin)}catch(_){fin(null)}setTimeout(()=>fin(null),4000)})}
       if(!im||seen.has(key+"|"+Math.round(b.y1)))continue;seen.add(key+"|"+Math.round(b.y1));
       const w=im.width,h=im.height;if(!w||!h||w<100||h<80||w/h>5||h/w>5)continue;
-      const src=pdfImgSrc(im);if(!src)continue;const g=pdfThumbSig(src);if(g.sd<10)continue;
+      const src=pdfImgSrc(im);if(!src)continue;const g=pdfThumbSig(src);if(g.sd<4)continue;
       out.push({url:toJpeg(src,0,0,w,h,900),sig:g.sig,fr:bw*bh/(PW*PH),...b});if(out.length>=10)break}}}catch(_){}
   return out}
 // bet matni → qatorlar (qismlar orasidagi bo'shliqqa qarab; har bir qismdan keyin bo'sh joy qo'yilmaydi — so'zlar bo'linmaydi)
@@ -3080,8 +3170,8 @@ async function readPdf(file){
     if(/\p{L}{3,}.*\p{L}{3,}/u.test(tt)&&!/^(untitled|document|hujjat|без названия|новый)/i.test(tt))ref=(au&&!/^(user|admin|пользователь|microsoft)/i.test(au)?au.replace(/[.\s]+$/,"")+". ":"")+tt.replace(/[.\s]+$/,"")+"."}catch(_){}
   const fn=file.name.replace(/\.pdf$/i,"").replace(/[_]+/g," ").trim();
   if(!ref&&/\p{L}{3,}[^\p{L}]+\p{L}{3,}/u.test(fn)&&!/^(img|image|scan|skan|document|doc|file|fayl|photo|foto|download|untitled|new|pdf|cam|screenshot|vid)\b/i.test(fn))ref=fn+".";
-  deck.srcName=file.name.replace(/\.pdf$/i,"");deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();
-  srcStatus(`Tayyor: ${pdf.numPages} betli PDF o'qildi${empty?` (${empty} ta skanerlangan bet rasm sifatida o'qildi)`:""}${nImg?`, ${nImg} ta rasm olindi — har biri slaydda PDF'dagi o'z joyiga qo'yiladi (matnda «[🖼 Rasm N]» belgisi turgan joy)`:""}. Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
+  deck.srcName=file.name.replace(/\.pdf$/i,"");deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();const TT=qSetTopic(text);
+  srcStatus(`Tayyor: ${pdf.numPages} betli PDF o'qildi${empty?` (${empty} ta skanerlangan bet rasm sifatida o'qildi)`:""}${nImg?`, ${nImg} ta rasm olindi — har biri slaydda PDF'dagi o'z joyiga qo'yiladi (matnda «[🖼 Rasm N]» belgisi turgan joy)`:""}. ${TT?` Mavzu: «${TT}».`:""} Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
 function addSrcImg(u,ctx){let k=SRC_IMGS.findIndex(z=>z.url===u);if(k>=0)return k;if(SRC_IMGS.length>=40)return-1;SRC_IMGS.push({url:u,ctx:String(ctx||"").slice(0,1500)});return SRC_IMGS.length-1}
 /* ===== matndagi [🖼 Rasm N] belgilari → rasm slaydda o'sha matn turgan joyga ===== */
 function qMarks(t){const L=String(t||"").split("\n"),marks=[];
@@ -3102,9 +3192,13 @@ function qPlaceMarks(slides,marks){if(!marks.length)return 0;
     if(c&&!plain(c)){let j=c.i;while(j>=0&&!plain(C[j]))j--;if(j<0){j=c.i;while(j<C.length&&!plain(C[j]))j++}c=C[j]||null}
     if(!c){const ks=t=>new Set(keyStems(t).map(k=>k.slice(0,5))),ik=ks((mk.b||"")+" "+(mk.a||""));let bv=1;C.filter(plain).forEach(o=>{let v=0;ik.forEach(k=>{if(o.w.includes(" "+k))v++});if(v>bv){bv=v;c=o}})}
     if(!c)return;
+    // slaydda allaqachon rasm bo'lsa — shu bo'limning rasmsiz qo'shni slaydiga (matn joyi kichraymasin)
+    if(cnt.get(c.s)){const same=o=>plain(o)&&o.s.title===c.s.title&&!cnt.get(o.s),nb=C.slice(c.i+1).find(same)||C.slice(0,c.i).reverse().find(same);if(nb)c=nb}
     // bitta slaydga 4 tadan ortiq bo'lsa — keyingi rasmsiz slaydga
     if((cnt.get(c.s)||0)>=4){const nx=C.slice(c.i+1).find(o=>plain(o)&&!cnt.get(o.s));if(!nx)return;c=nx}
-    const s=c.s,n=cnt.get(s)||0,list=imgs(s).filter(u=>u!==mk.url);list.splice(n,0,mk.url);s.imgs=list.slice(0,4);s.img="";s.noimg=false;
+    const s=c.s,n=cnt.get(s)||0,list=imgs(s).filter(u=>u!==mk.url);
+    {const wb=W(mk.b),wa=W(mk.a),tb=wb.length>=3?" "+wb.slice(-3).join(" ")+" ":"",ta=wa.length>=3?" "+wa.slice(0,3).join(" ")+" ":"",an=tb&&c.w.includes(tb)?tb:ta&&c.w.includes(ta)?ta:"";
+      if(an)(s._ancs||(s._ancs=[])).push({u:mk.url,a:an})}list.splice(n,0,mk.url);s.imgs=list.slice(0,4);s.img="";s.noimg=false;
     if(n===0&&(s.side||design().fam==="dars"))s.side=mk.url;cnt.set(s,n+1);placed++});
   return placed}
 
@@ -3193,7 +3287,7 @@ async function readDocx(file){
     if(k===undefined){k=-1;const ext=(path.split(".").pop()||"").toLowerCase();
       if(IMT[ext])try{const b=await z.get(path);if(b){const u=URL.createObjectURL(new Blob([b],{type:IMT[ext]}));
           try{const im=await new Promise((res,rej)=>{const x=new Image();x.onload=()=>res(x);x.onerror=rej;x.src=u});const w=im.naturalWidth,h=im.naturalHeight;
-            if(w>=100&&h>=80&&w/h<=5&&h/w<=5&&pdfThumbSig(im).sd>=10)k=addSrcImg(toJpeg(im,0,0,w,h,900),"")}finally{URL.revokeObjectURL(u)}}}catch(_){}
+            if(w>=100&&h>=80&&w/h<=5&&h/w<=5&&pdfThumbSig(im).sd>=4)k=addSrcImg(toJpeg(im,0,0,w,h,900),"")}finally{URL.revokeObjectURL(u)}}}catch(_){}
       done[path]=k}
     if(k>=0){lines.push(`[🖼 Rasm ${k+1}]`);used.add(k)}}
   const text=lines.join("\n");if(!text.replace(/\[🖼 Rasm \d+\]/g,"").trim())throw new Error("Word faylda matn topilmadi");
@@ -3203,8 +3297,8 @@ async function readDocx(file){
       if(/\p{L}{3,}.*\p{L}{3,}/u.test(tt)&&!/^(untitled|document|hujjat|без названия|новый|документ)/i.test(tt))ref=(au&&!/^(user|admin|пользователь|microsoft|python-docx)/i.test(au)?au.replace(/[.\s]+$/,"")+". ":"")+tt.replace(/[.\s]+$/,"")+"."}}catch(_){}
   const fn=file.name.replace(/\.docx$/i,"").replace(/[_]+/g," ").trim();
   if(!ref&&/\p{L}{3,}[^\p{L}]+\p{L}{3,}/u.test(fn)&&!/^(img|image|scan|skan|document|doc|file|fayl|photo|foto|download|untitled|new|pdf|cam|screenshot|vid|hujjat|документ)\b/i.test(fn))ref=fn+".";
-  deck.srcName=fn;deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();
-  srcStatus(`Tayyor: Word fayli o'qildi (${paras} ta abzas)${used.size?`, ${used.size} ta rasm olindi — har biri slaydda o'z joyiga qo'yiladi (matnda «[🖼 Rasm N]» belgisi turgan joy)`:""}. Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
+  deck.srcName=fn;deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();const TT=qSetTopic(text);
+  srcStatus(`Tayyor: Word fayli o'qildi (${paras} ta abzas)${used.size?`, ${used.size} ta rasm olindi — har biri slaydda o'z joyiga qo'yiladi (matnda «[🖼 Rasm N]» belgisi turgan joy)`:""}. ${TT?` Mavzu: «${TT}».`:""} Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
 
 let OCR=null;
 async function ocrImage(img,label){
@@ -3423,11 +3517,11 @@ const CONN=/^(al-|at-|ad-|as-|ash-|an-|ibn|bin|ul-)$/i;
 // Namunadagidek: atoqli otlar, raqamlar va «...» ichidagilar qizil; qolgan bo'laklar vergul bo'yicha ko'k/yashil navbatlanadi
 function colorize(t,k){const parts=t.split(/(\s+)/);let ci=k,first=true,inQ=false,prevRed=false,out="";
   parts.forEach((w,j)=>{if(!w)return;if(/^\s+$/.test(w)){out+=w;return}
-    const base=ci%2?"#1f7a2e":"#1a3ba0";
+    const base=["#141414","#1a3ba0","#c4161c","#1f7a2e"][ci%4];
     if(/^[«"“]/.test(w))inQ=true;
     let red=inQ||/\d/.test(w)||PROPER.test(w)||(prevRed&&CONN.test(w.replace(/[^\w-]/g,"")));
     if(first&&red&&!inQ&&!/\d/.test(w)){const nx=parts.slice(j+1).find(x=>x&&!/^\s+$/.test(x))||"";red=PROPER.test(nx)}
-    first=false;out+=`<span style="color:${red?"#e3241b":base}">${esc(w)}</span>`;prevRed=red;
+    first=false;out+=`<span style="color:${red?(base==="#c4161c"?"#141414":"#e3241b"):base}">${esc(w)}</span>`;prevRed=red;
     if(/[»"”]/.test(w))inQ=false;
     if(/[,;:—]$/.test(w)||w==="—")ci++});return out}
 function capOf(u){if(/^data:/.test(u||""))return"";try{let f=decodeURIComponent(u.split("/").pop()).replace(/^\d+px-/,"").replace(/\.(jpe?g|png)$/i,"").replace(/[_]+/g," ").replace(/\(.*?\)/g,"")
@@ -3695,7 +3789,7 @@ function fit(el){if(!el||!el.getClientRects().length||el.clientWidth<40)return; 
     const over=()=>boxes.some(b=>{if(b.scrollHeight>b.clientHeight+1||b.scrollWidth>b.clientWidth+1)return true;
       const L=lim(b);for(const t of b.querySelectorAll("[contenteditable],.tx")){rg.selectNodeContents(t);const r=rg.getBoundingClientRect();if(r.height&&r.bottom>L+.5)return true}return false});
     let lo=.3,hi=1.9;for(let n=0;n<11;n++){const m=(lo+hi)/2;el.style.setProperty("--k",m.toFixed(3));if(over())hi=m;else lo=m}
-    el.style.setProperty("--k",(lo*.95).toFixed(3))}
+    fitUni(el,lo*.95)}
   fitTtl(el)}
 // sarlavhalar «…» bilan kesilmasin: sig'maguncha harf kichrayadi
 function fitTtl(el){el.querySelectorAll(".dr-hd>span,.sh-ttl>span,.dr-tab,.tp-hd>span").forEach(t=>{["--tk","display","-webkit-line-clamp","overflow"].forEach(x=>t.style.removeProperty(x));
