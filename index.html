@@ -1320,7 +1320,7 @@ Ta'limni moliyalashtirish"></textarea>
       <small>Xohlasangiz, rasmlarni slaydga o'zingiz tanlab qo'yishingiz mumkin. Nechta rasm bo'lsa ham yuklang — men ularni har bir reja bandiga moslab qo'yib beraman.</small>
       <div class="filebtn"><button type="button" tabindex="-1">📷 Rasmlarni yuklash</button><input id="myImgs" type="file" accept="image/*" multiple aria-label="Slaydlar uchun rasmlar"></div>
       <div id="myImgList" class="myimg-list"></div>
-      <label class="mymix" id="myMixBox" hidden><input type="checkbox" id="myMix"><span>🌐 Internetdan ham rasm qo'shilsin<small>Belgilanmasa — slaydlarga faqat siz tanlagan va PDF'dagi rasmlar qo'yiladi.</small></span></label></div>
+      <label class="mymix" id="myMixBox" hidden><input type="checkbox" id="myMix"><span>🌐 Internetdan ham rasm qo'shilsin<small>Belgilanmasa — slaydlarga faqat siz tanlagan va PDF/Word fayldagi rasmlar qo'yiladi.</small></span></label></div>
     <label class="aisw" id="aiSwBox" hidden><input type="checkbox" id="aiSw" checked><span>⭐ <b>PRO: Google'dan qidirish</b> — sun'iy intellekt mavzu bo'yicha eng yangi ma'lumot va rasmlarni topib, slaydni tuzadi<small id="aiSwNote"></small></span></label>
     <label class="aisw jl-sw" id="jlSwBox" hidden><input type="checkbox" id="jlSw"><span>🎬 <b>Jonli slayd</b> — har slaydga mavzudagi hayvon, o'simlik yoki joyning o'z rasmi Google'dan qo'yiladi, rasmlar harakatlanadi, xohlasangiz haqiqiy videoga aylantiriladi<small id="jlSwNote"></small></span></label>
     <button class="primary" id="go">✨ Slayd yaratishni boshlash</button>
@@ -1331,7 +1331,7 @@ Ta'limni moliyalashtirish"></textarea>
       <span class="lbl">Ma'lumot qayerdan olinsin? (4 usul)</span>
       <div class="src-tabs" role="tablist">
         <button type="button" class="src-t on" data-src="web">🌐 Internet</button>
-        <button type="button" class="src-t" data-src="pdf">📄 PDF</button>
+        <button type="button" class="src-t" data-src="pdf">📄 PDF / Word</button>
         <button type="button" class="src-t" data-src="img">🖼 Skrinshotlar</button>
         <button type="button" class="src-t" data-src="txt">📋 Matn</button>
       </div>
@@ -1339,8 +1339,8 @@ Ta'limni moliyalashtirish"></textarea>
         <button type="button" class="primary" id="srcWeb" style="width:100%">🌐 Internetdagi ma'lumotlardan slayd yaratish</button>
         <small>Ilova yozilgan mavzu bo'yicha Vikipediya va boshqa manbalardan ma'lumot, rasm va adabiyotlarni o'zi topib, tanlangan reja asosida slayd tuzadi.</small></div>
       <div class="src-p" data-p="pdf" hidden>
-        <div class="filebtn"><button type="button" class="primary" tabindex="-1" style="width:100%">📄 Mavzuni PDF formatda yuklash</button><input id="srcPdf" type="file" accept="application/pdf,.pdf" aria-label="PDF fayl"></div>
-        <small>Kitob yoki darslikdagi mavzu PDF faylini tanlang. Ilova undagi <b>matnni ham, rasmlarni ham</b> o'qib oladi — slaydda har bir rasm PDF'dagi o'z joyiga (o'sha matn yoniga) qo'yiladi.</small></div>
+        <div class="filebtn"><button type="button" class="primary" tabindex="-1" style="width:100%">📄 Mavzuni PDF yoki Word (DOCX) faylda yuklash</button><input id="srcPdf" type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.doc,application/msword" aria-label="PDF yoki Word fayl"></div>
+        <small>Mavzuning <b>PDF</b> yoki <b>Word (DOCX)</b> faylini tanlang. Ilova undagi <b>matnni ham, rasmlarni ham</b> o'qib oladi — slaydda har bir rasm fayldagi o'z joyiga (o'sha matn yoniga) qo'yiladi.</small></div>
       <div class="src-p" data-p="img" hidden>
         <div class="filebtn"><button type="button" class="primary" tabindex="-1" style="width:100%">🖼 Skrinshotlarni yuklash (xohlagancha)</button><input id="srcImg" type="file" accept="image/*" multiple aria-label="Skrinshotlar"></div>
         <small>Kitob sahifalarini yoki mavzuni skrinshot qilib, hammasini birdan tanlang. Ilova rasmdagi yozuvni o'qib, matnga aylantiradi (birinchi marta biroz vaqt oladi).</small></div>
@@ -2842,7 +2842,7 @@ async function fromText(){const topic=$("#topic").value.trim();if(!canCreate(top
     const S=r.slides.length,msg=[`Tayyor: ${S} ta slayd — matningiz to'liq kiritildi`];if(note)msg.push(note);
     msg.push(own.x?"xulosa — o'zingiz yozgan":D.x.length?"xulosa — matningizdagi":"xulosa — matningizdan");
     msg.push(rsFrom==="own"?`adabiyotlar — o'zingiz yozgan (${rs.length} ta)`:rsFrom==="text"?`adabiyotlar — matningizdagi (${rs.length} ta)`:rs.length?`adabiyotlar — faqat shu mavzuga oid (${rs.length} ta)`:"mavzuga aniq mos adabiyot topilmadi — «Foydalanilgan adabiyotlar»da «✍️ O'zim yozaman»ni tanlab yozing");
-    const pdfW=QM.marks.length?`PDF'dagi ${placed} ta rasm o'z joyiga qo'yildi`:`${placed} ta rasm PDF/skrinshotlardan`;
+    const pdfW=QM.marks.length?`fayldagi ${placed} ta rasm o'z joyiga qo'yildi`:`${placed} ta rasm PDF/skrinshotlardan`;
     if(MO)msg.push([placed?pdfW:"",MY_IMGS.length?`siz tanlagan ${MY_IMGS.length} ta rasm`:""].filter(Boolean).join(", ")+" — internetdan rasm qo'shilmadi");
     else{if(placed)msg.push(pdfW);if(myP)msg.push(`${myP} ta o'z rasmingiz qo'yildi`)}
     if(S>n)msg.push(`matn to'liq sig'ishi uchun ${n} emas, ${S} ta bet bo'ldi`);
@@ -3077,7 +3077,7 @@ async function readPdf(file){
   // rasm yonidagi matn — rasmning mazmuni (zaxira joylash uchun)
   const TL=text.split("\n");TL.forEach((l,i)=>{const m=PDF_MK.exec(l);if(!m)return;const im=SRC_IMGS[+m[1]-1];if(im&&!im.ctx)im.ctx=TL.slice(Math.max(0,i-2),i+3).filter(x=>!PDF_MK.test(x)).join(" ").slice(0,1500)});
   let ref="";try{const md=await pdf.getMetadata(),inf=(md&&md.info)||{},tt=String(inf.Title||"").replace(/^microsoft (word|powerpoint)\s*-\s*/i,"").replace(/\.(docx?|pdf|pptx?)$/i,"").trim(),au=String(inf.Author||"").trim();
-    if(/\p{L}{3,}.*\p{L}{3,}/u.test(tt)&&!/^(untitled|document|hujjat|без названия|новый)/i.test(tt))ref=(au&&!/^(user|admin|пользователь|microsoft)/i.test(au)?au+". ":"")+tt+"."}catch(_){}
+    if(/\p{L}{3,}.*\p{L}{3,}/u.test(tt)&&!/^(untitled|document|hujjat|без названия|новый)/i.test(tt))ref=(au&&!/^(user|admin|пользователь|microsoft)/i.test(au)?au.replace(/[.\s]+$/,"")+". ":"")+tt.replace(/[.\s]+$/,"")+"."}catch(_){}
   const fn=file.name.replace(/\.pdf$/i,"").replace(/[_]+/g," ").trim();
   if(!ref&&/\p{L}{3,}[^\p{L}]+\p{L}{3,}/u.test(fn)&&!/^(img|image|scan|skan|document|doc|file|fayl|photo|foto|download|untitled|new|pdf|cam|screenshot|vid)\b/i.test(fn))ref=fn+".";
   deck.srcName=file.name.replace(/\.pdf$/i,"");deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();
@@ -3107,6 +3107,104 @@ function qPlaceMarks(slides,marks){if(!marks.length)return 0;
     const s=c.s,n=cnt.get(s)||0,list=imgs(s).filter(u=>u!==mk.url);list.splice(n,0,mk.url);s.imgs=list.slice(0,4);s.img="";s.noimg=false;
     if(n===0&&(s.side||design().fam==="dars"))s.side=mk.url;cnt.set(s,n+1);placed++});
   return placed}
+
+/* ===== 📝 Word (DOCX) fayl (v44): matn abzaslari, avto-raqamlar (Reja 1. 2. 3.), jadvallar, rasmlar — o'z joyida ===== */
+// ZIP o'qish: brauzerning o'z «deflate-raw» ochuvchisi; bo'lmasa JSZip (kerak bo'lgandagina yuklanadi)
+async function zipOpen(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf);let native=false;
+  try{if(window.DecompressionStream){new DecompressionStream("deflate-raw");native=true}}catch(_){}
+  if(native){let e=-1;for(let i=u8.length-22;i>=Math.max(0,u8.length-65557);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break}}
+    if(e>=0){const cnt=dv.getUint16(e+10,true),F={};let p=dv.getUint32(e+16,true);const td=new TextDecoder();
+      for(let k=0;k<cnt&&p+46<=u8.length;k++){if(dv.getUint32(p,true)!==0x02014b50)break;
+        const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lho=dv.getUint32(p+42,true);
+        F[td.decode(u8.subarray(p+46,p+46+nl))]={method,csize,lho};p+=46+nl+xl+cl}
+      return{has:n=>!!F[n],get:async n=>{const f=F[n];if(!f)return null;const st=f.lho+30+dv.getUint16(f.lho+26,true)+dv.getUint16(f.lho+28,true),d=u8.subarray(st,st+f.csize);
+        if(f.method===0)return d.slice();if(f.method!==8)return null;
+        const s=new Blob([d]).stream().pipeThrough(new DecompressionStream("deflate-raw"));return new Uint8Array(await new Response(s).arrayBuffer())}}}}
+  if(!window.JSZip)await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";sc.onload=res;sc.onerror=()=>rej(new Error("ZIP kutubxonasi yuklanmadi. Internetni tekshiring."));document.head.appendChild(sc)});
+  const z=await JSZip.loadAsync(buf);return{has:n=>!!z.file(n),get:async n=>{const f=z.file(n);return f?await f.async("uint8array"):null}}}
+const dxT=(d,n)=>d.getElementsByTagNameNS("*",n),dxIn=(el,stop)=>{for(let e=el.parentElement;e&&e!==stop;e=e.parentElement)if(e.localName==="txbxContent")return true;return false};
+const dxK=(el,n)=>{if(!el)return null;for(const c of el.children)if(c.localName===n)return c;return null};
+const dxV=(el,a)=>el?(el.getAttribute("w:"+a)??el.getAttribute(a)):null;
+function dxOn(el){if(!el)return false;const v=dxV(el,"val");return v==null||!/^(0|false|off|none)$/i.test(v)}
+function dxRoman(n){const R=[[1000,"m"],[900,"cm"],[500,"d"],[400,"cd"],[100,"c"],[90,"xc"],[50,"l"],[40,"xl"],[10,"x"],[9,"ix"],[5,"v"],[4,"iv"],[1,"i"]];let s="";for(const[v,r]of R)while(n>=v){s+=r;n-=v}return s}
+function dxFmt(n,f){switch(f){case"lowerLetter":return String.fromCharCode(96+((n-1)%26)+1);case"upperLetter":return String.fromCharCode(64+((n-1)%26)+1);
+  case"lowerRoman":return dxRoman(n);case"upperRoman":return dxRoman(n).toUpperCase();case"none":return"";default:return String(n)}}
+async function readDocx(file){
+  srcStatus("Word fayli ochilmoqda…");
+  const z=await zipOpen(await file.arrayBuffer()),td=new TextDecoder();
+  const xml=async n=>{const b=await z.get(n);if(!b)return null;const d=new DOMParser().parseFromString(td.decode(b),"application/xml");return dxT(d,"parsererror").length?null:d};
+  const doc=await xml("word/document.xml");if(!doc)throw new Error("bu Word (DOCX) fayl emas yoki buzilgan");
+  // rasm manzillari
+  const RM={},rels=await xml("word/_rels/document.xml.rels");
+  if(rels)for(const r of dxT(rels,"Relationship")){if(r.getAttribute("TargetMode")==="External")continue;let t=String(r.getAttribute("Target")||"");
+    t=t.startsWith("/")?t.slice(1):("word/"+t);const P=[];t.split("/").forEach(x=>{if(x==="..")P.pop();else if(x&&x!==".")P.push(x)});RM[r.getAttribute("Id")]=P.join("/")}
+  // avto-raqamlash (numbering.xml) va uslublar (styles.xml)
+  const ABS={},NUM={},STY={},cnt={};
+  const nx=await xml("word/numbering.xml");
+  if(nx){for(const a of dxT(nx,"abstractNum")){const L={};for(const l of a.children){if(l.localName!=="lvl")continue;
+        L[+dxV(l,"ilvl")]={fmt:dxV(dxK(l,"numFmt"),"val")||"decimal",txt:dxV(dxK(l,"lvlText"),"val"),start:+(dxV(dxK(l,"start"),"val")||1)}}
+      ABS[dxV(a,"abstractNumId")]=L}
+    for(const n of dxT(nx,"num")){const ov={};for(const o of n.children){if(o.localName!=="lvlOverride")continue;const so=dxK(o,"startOverride");if(so)ov[+dxV(o,"ilvl")]=+dxV(so,"val")}
+      NUM[dxV(n,"numId")]={abs:dxV(dxK(n,"abstractNumId"),"val"),ov}}}
+  const sx=await xml("word/styles.xml");
+  if(sx)for(const st of dxT(sx,"style")){if(dxV(st,"type")!=="paragraph")continue;const pp=dxK(st,"pPr"),np=dxK(pp,"numPr");
+    STY[dxV(st,"styleId")]={based:dxV(dxK(st,"basedOn"),"val"),num:np?{id:dxV(dxK(np,"numId"),"val"),lvl:+(dxV(dxK(np,"ilvl"),"val")||0)}:null}}
+  const styNum=id=>{for(let k=0;id&&k<8;k++){const s=STY[id];if(!s)return null;if(s.num)return s.num;id=s.based}return null};
+  const numText=(id,lvl)=>{const N=NUM[id];if(!N||id==="0")return null;const L=ABS[N.abs]||{},cur=L[lvl]||{fmt:"decimal",txt:`%${lvl+1}.`,start:1};
+    const c=cnt[id]||(cnt[id]={});for(let k=0;k<=lvl;k++)if(c[k]==null)c[k]=(N.ov[k]??((L[k]||{}).start??1))-(k===lvl?1:0);
+    c[lvl]++;for(const k in c)if(+k>lvl)delete c[k];
+    if(cur.fmt==="bullet")return lvl>0?"-":"";
+    return String(cur.txt==null?`%${lvl+1}.`:cur.txt).replace(/%(\d)/g,(m,d)=>{const k=+d-1;return dxFmt(c[k]??((L[k]||{}).start??1),(L[k]||{}).fmt||"decimal")}).trim()};
+  // hujjat bo'ylab yurish
+  const items=[];
+  const para=p=>{let t="";const im=[],boxes=[];
+    const run=r=>{for(const c of r.children){const n=c.localName;
+      if(n==="t")t+=c.textContent;else if(n==="tab")t+=" ";else if(n==="br"||n==="cr")t+="\n";else if(n==="noBreakHyphen")t+="-";
+      else if(n==="drawing"||n==="pict"||n==="object"){for(const b of c.getElementsByTagName("*")){const ln=b.localName;if(dxIn(b,c))continue;   // matn qutisi ichidagisi — o'sha qutida
+          if(ln==="blip"){const id=b.getAttribute("r:embed")||b.getAttribute("r:link");if(id)im.push(id)}
+          else if(ln==="imagedata"){const id=b.getAttribute("r:id");if(id)im.push(id)}
+          else if(ln==="txbxContent")boxes.push(b)}}
+      else if(n==="AlternateContent"){const ch=dxK(c,"Choice")||dxK(c,"Fallback");if(ch)run(ch)}}};
+    const walk=el=>{for(const c of el.children){const n=c.localName;
+      if(n==="r")run(c);else if(n==="AlternateContent"){const ch=dxK(c,"Choice")||dxK(c,"Fallback");if(ch)walk(ch)}
+      else if(/^(hyperlink|smartTag|ins|fldSimple|customXml|sdt|sdtContent|moveTo|bdo|dir)$/.test(n))walk(c)}};
+    walk(p);
+    const pp=dxK(p,"pPr"),np=dxK(pp,"numPr");let nm=null;
+    if(np){nm=numText(dxV(dxK(np,"numId"),"val"),+(dxV(dxK(np,"ilvl"),"val")||0))}
+    else{const sn=styNum(dxV(dxK(pp,"pStyle"),"val"));if(sn)nm=numText(sn.id,sn.lvl)}
+    t.split("\n").map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean).forEach((x,j)=>items.push({t:j===0&&nm?`${nm} ${x}`:x}));
+    // matn qutilari (text box) — o'z abzasidan keyin; ichma-ich takrorlanmasin
+    boxes.forEach(b=>body(b));
+    im.forEach(id=>items.push({img:id}))};
+  const table=tb=>{for(const tr of tb.children){if(tr.localName!=="tr")continue;const cells=[],imq=[];
+      for(const tc of tr.children){if(tc.localName!=="tc")continue;const st=items.length;body(tc);const got=items.splice(st);
+        cells.push(got.filter(x=>x.t!=null).map(x=>x.t).join(" "));got.filter(x=>x.img).forEach(x=>imq.push(x))}
+      const line=cells.map(x=>x.trim()).filter(Boolean).join(" — ");if(line)items.push({t:line});imq.forEach(x=>items.push(x))}};
+  const body=el=>{for(const c of el.children){const n=c.localName;
+    if(n==="p")para(c);else if(n==="tbl")table(c);else if(n==="AlternateContent"){const ch=dxK(c,"Choice")||dxK(c,"Fallback");if(ch)body(ch)}
+    else if(/^(sdt|sdtContent|customXml|ins|moveTo|txbxContent)$/.test(n))body(c)}};
+  const B=dxT(doc,"body")[0];if(!B)throw new Error("Word faylda matn topilmadi");
+  srcStatus("Word fayli o'qilmoqda…");body(B);
+  // rasmlar (o'qish tartibida raqamlanadi)
+  const IMT={png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",bmp:"image/bmp",webp:"image/webp"},done={},used=new Set(),lines=[];let paras=0;
+  for(const it of items){if(it.t!=null){lines.push(it.t);paras++;continue}
+    const path=RM[it.img];if(!path)continue;let k=done[path];
+    if(k===undefined){k=-1;const ext=(path.split(".").pop()||"").toLowerCase();
+      if(IMT[ext])try{const b=await z.get(path);if(b){const u=URL.createObjectURL(new Blob([b],{type:IMT[ext]}));
+          try{const im=await new Promise((res,rej)=>{const x=new Image();x.onload=()=>res(x);x.onerror=rej;x.src=u});const w=im.naturalWidth,h=im.naturalHeight;
+            if(w>=100&&h>=80&&w/h<=5&&h/w<=5&&pdfThumbSig(im).sd>=10)k=addSrcImg(toJpeg(im,0,0,w,h,900),"")}finally{URL.revokeObjectURL(u)}}}catch(_){}
+      done[path]=k}
+    if(k>=0){lines.push(`[🖼 Rasm ${k+1}]`);used.add(k)}}
+  const text=lines.join("\n");if(!text.replace(/\[🖼 Rasm \d+\]/g,"").trim())throw new Error("Word faylda matn topilmadi");
+  const TL=text.split("\n");TL.forEach((l,i)=>{const m=PDF_MK.exec(l);if(!m)return;const im=SRC_IMGS[+m[1]-1];if(im&&!im.ctx)im.ctx=TL.slice(Math.max(0,i-2),i+3).filter(x=>!PDF_MK.test(x)).join(" ").slice(0,1500)});
+  // manba nomi: hujjat xususiyatlaridagi sarlavha/muallif yoki ma'noli fayl nomi
+  let ref="";try{const cx=await xml("docProps/core.xml");if(cx){const g=n=>{const e=dxT(cx,n)[0];return e?e.textContent.trim():""};const tt=g("title"),au=g("creator");
+      if(/\p{L}{3,}.*\p{L}{3,}/u.test(tt)&&!/^(untitled|document|hujjat|без названия|новый|документ)/i.test(tt))ref=(au&&!/^(user|admin|пользователь|microsoft|python-docx)/i.test(au)?au.replace(/[.\s]+$/,"")+". ":"")+tt.replace(/[.\s]+$/,"")+"."}}catch(_){}
+  const fn=file.name.replace(/\.docx$/i,"").replace(/[_]+/g," ").trim();
+  if(!ref&&/\p{L}{3,}[^\p{L}]+\p{L}{3,}/u.test(fn)&&!/^(img|image|scan|skan|document|doc|file|fayl|photo|foto|download|untitled|new|pdf|cam|screenshot|vid|hujjat|документ)\b/i.test(fn))ref=fn+".";
+  deck.srcName=fn;deck.srcRef=ref;appendText(text);renderMyImgs();renderSrcImgs();
+  srcStatus(`Tayyor: Word fayli o'qildi (${paras} ta abzas)${used.size?`, ${used.size} ta rasm olindi — har biri slaydda o'z joyiga qo'yiladi (matnda «[🖼 Rasm N]» belgisi turgan joy)`:""}. Matnni ko'rib chiqing va «Shu ma'lumotdan slayd yaratish»ni bosing.`)}
 
 let OCR=null;
 async function ocrImage(img,label){
@@ -3154,7 +3252,10 @@ function goodPara(p){
     if(/[?:]\)|:\?|\?\w|\b\w{1,2}:\w/.test(s))return false;
     const ws=s.split(/\s+/),ok=ws.filter(wordOk).length;return ok/ws.length>=.9});
   return ss.join(" ")}
-$("#srcPdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{await readPdf(f)}catch(err){srcStatus("PDF faylni o'qib bo'lmadi: "+err.message,true)}};
+$("#srcPdf").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const nm=f.name.toLowerCase();
+  if(/\.doc$/.test(nm)||f.type==="application/msword"){srcStatus("Bu eski Word (.doc) fayl — uni o'qib bo'lmaydi. Word'da «Saqlash» → «Word hujjati (.docx)» yoki PDF qilib saqlab, qayta yuklang.",true);return}
+  const dx=/\.docx$/.test(nm)||/wordprocessingml/.test(f.type);
+  try{if(dx)await readDocx(f);else await readPdf(f)}catch(err){srcStatus((dx?"Word faylni":"PDF faylni")+" o'qib bo'lmadi: "+err.message,true)}};
 $("#srcImg").onchange=async e=>{const fs=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name,undefined,{numeric:true}));e.target.value="";if(!fs.length)return;let ok=0;
   try{for(const[i,f]of fs.entries()){srcStatus(`${i+1}-rasm o'qilmoqda (jami ${fs.length} ta)…`);const t=await ocrImage(f,`${i+1}/${fs.length}-rasm`);if(t.trim()){appendText(t);ok++}
       try{const im=await loadImg(f);addSrcImgs(findPhotos(im),t);URL.revokeObjectURL(im.src)}catch(_){}}
@@ -3946,7 +4047,7 @@ function swapImage(i){const s=deck.slides[i],pool=deck.pool||[];if(pool.length<2
   save();render();setStatus(`${i+1}-slayd rasmi almashtirildi.`)}
 
 /* ---------- "Internet" usuli ---------- */
-function srcMode(m){const web=m==="web";["#manual","#srcStatus"].forEach(q=>{const e=$(q);if(e)e.hidden=web});const fr=$("#fromText");if(fr&&fr.parentElement)fr.parentElement.hidden=web;
+function srcMode(m){const web=m==="web";["#manual","#srcStatus","#srcImgs"].forEach(q=>{const e=$(q);if(e)e.hidden=web});const fr=$("#fromText");if(fr&&fr.parentElement)fr.parentElement.hidden=web;
   const sm=fr&&fr.parentElement&&fr.parentElement.nextElementSibling;if(sm&&sm.tagName==="SMALL")sm.hidden=web}
 $("#srcWeb").onclick=()=>{if(!$("#topic").value.trim()){setStatus("Avval mavzuni yozing.",true);$("#topic").focus();window.scrollTo({top:0,behavior:"smooth"});return}generate()};
 srcMode("web");
