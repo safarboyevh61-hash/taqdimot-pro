@@ -462,6 +462,8 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 .fs em{font-style:inherit}
 .fs-ph{position:absolute;z-index:1;overflow:hidden;background:#dfe7ef}
 .fs-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.fs-ph img.bk{position:absolute;inset:0;filter:blur(1cqw) saturate(1.1);transform:scale(1.15)}
+.fs-ph.cv img.fr{position:relative;object-fit:contain}
 .fs-ph.none{background:linear-gradient(135deg,var(--fa2),var(--fa));opacity:.35}
 .fs-ph.cv{border-radius:1.2cqw;box-shadow:0 0 0 .35cqw rgba(255,255,255,.95),0 .5cqw 1.6cqw rgba(0,0,0,.35)}
 .fs-ph.gold{border-radius:1.6cqw;box-shadow:0 0 0 .3cqw #f3d27a,0 0 0 .55cqw #8a6118,0 .6cqw 1.6cqw rgba(0,0,0,.45)}
@@ -527,6 +529,23 @@ button.primary{background:linear-gradient(90deg,var(--b1),var(--b2));border:0;co
 .fs-nur li{font-family:"Lora","Liberation Serif",Georgia,serif;color:#111}
 .fs-nur li>i{border-radius:.25em;background:linear-gradient(180deg,#2aa52a,#0d6b0d)}
 .fs-nur .fs-pan .fs-ph.in{border-radius:1.6cqw;box-shadow:0 0 0 .25cqw #6cc24a,0 .4cqw 1cqw rgba(0,60,0,.25)}
+
+.fs-pl2{background:none!important;border:0!important;box-shadow:none!important;padding:0 1%!important}
+.fs-rw2 .fs-f{font-weight:800;color:#111;line-height:1.12}
+.fs-yashil .fs-rw2 .fs-f,.fs-nur .fs-rw2 .fs-f,.fs-nur .fs-ft{font-family:"Lora","Liberation Serif",Georgia,serif}
+.fs-kok .fs-rw2 .fs-f{color:#0c1f4a}
+.fs-iqt .fs-rw2 .fs-f{color:#10213f;font-weight:700}
+.fs-bd{display:flex;align-items:center;justify-content:center;font:italic 800 3.6cqw/1 "Lora","Liberation Serif",Georgia,serif;color:#fff;text-shadow:0 .15cqw .3cqw rgba(0,0,0,.45)}
+.fs-ft .fs-f{text-align:center;font-weight:800;color:#fff;text-shadow:0 .15cqw .3cqw rgba(0,0,0,.5)}
+.fs-ex .fs-f{text-align:center;font-weight:800}
+.fs-exw .fs-f{color:#fff;font-style:italic;text-shadow:0 .12cqw .3cqw rgba(0,0,0,.5);font-family:"Montserrat",sans-serif}
+.fs-exd .fs-f{color:#0c2a6a;font-family:"Montserrat",sans-serif}
+.fs-ph.gr2{border-radius:1.6cqw;box-shadow:0 0 0 .25cqw #fff,0 0 0 .45cqw #6cc24a,0 .4cqw 1cqw rgba(0,60,0,.25)}
+.fs-ph.nr2{border-radius:2.2cqw;box-shadow:0 0 0 .3cqw #fff,0 0 0 .55cqw #49b52a}
+.fs-yashil .fs-pl2 li,.fs-nur .fs-pl2 li{font-family:"Lora","Liberation Serif",Georgia,serif;font-weight:700}
+
+.fs .fs-f,.fs .fs-f *{overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important}
+.fs-ttl0 em,.fs-tp h1 em{white-space:nowrap}
 </style>
 <style id="jonliCss">
 /* 🎬 Jonli slayd: rasmlar sekin harakatlanadi (Ken Burns), «Ko'rsatish»da matn chiqib keladi */
@@ -3633,7 +3652,7 @@ const TP_SUB=[["ona","Ona tili"],["adab","Adabiyot"],["rus","Rus tili"],["ing","
   ["mat","Matematika"],["inf","Informatika"],["iqt","Iqtisodiyot"],["eko","Ekologiya"],["san","Musiqa va san'at"],["sport","Jismoniy tarbiya"],["umumiy","Umumiy"]];
 const TP_IMG={},TP_BG={},TP_PEND={},TP_NOIMG={};let TP_RT=0;
 function tpT(){try{const d=design();return d&&d.tp||null}catch(_){return null}}
-let TP_JS=null;const TP_VER="33";
+let TP_JS=null;const TP_VER="34";
 function tpBundle(){if(window.TP_SPR)return Promise.resolve(true);if(TP_JS)return TP_JS;
   TP_JS=new Promise(res=>{const sc=document.createElement("script");sc.src="shablonlar.js?v="+TP_VER;sc.async=true;
     const t=setTimeout(()=>res(!!window.TP_SPR),45000);sc.onload=()=>{clearTimeout(t);res(!!window.TP_SPR)};sc.onerror=()=>{clearTimeout(t);res(false)};(document.head||document.documentElement).appendChild(sc)})
@@ -3763,16 +3782,21 @@ const D_C={"osmon":"umumiy geo","okean":"geo bio","kosmos":"fiz","tabiat":"bio e
 
 /* ===== 📸 Rasmli to'plamlar (FS): titul asl dizaynda (institut, fakultet, rasm, mavzu, muallif), ichki slaydlarga rasmlar Google'dan ===== */
 const FS=[
- {id:"yashil",n:"🌿 Yashil biologiya",c:"bio kim eko",ac:"#1f7a2a",ac2:"#7cc242",
+ {id:"yashil",L:{reja:{bg:"r",pan:[11.5,16,77,75]},img:{bg:"i",ttl:[26.2,8.4,49.2,8.6],pan:[8.5,23,50.5,54.5],img:[61.6,26.2,28.7,51.2]},
+    xul:{bg:"x",pan:[8.6,23.5,54.6,62.5],img:[66.8,21.4,23,26]},refs:{bg:"f",pan:[9,23.5,82,60]}},n:"🌿 Yashil biologiya",c:"bio kim eko",ac:"#1f7a2a",ac2:"#7cc242",
   cv:{logo:[2.73,2.5,13.28,23.61],uni:[28.6,1.3,46.7,10.2],fac:[35.4,12.3,34.3,5.3],photo:[33.59,17.78,40.63,31.94],title:[31.9,58.4,42.4,24.6],b1:[4.7,86.2,27.8,4.6],b2:[13.9,92.3,9.4,3.4],au:[71.7,89.3,25,5.3]},
   k:{ttl:[42.2,12.2,31.2,10.6],panel:[8.2,30.3,83.4,62.2]}},
- {id:"kok",n:"🧬 Ko'k ilmiy",c:"bio kim fiz",ac:"#1d4fc4",ac2:"#2fa84f",
+ {id:"kok",L:{reja:{bg:"r",n:4,rows:[[43,22.5,51.5,13.5],[43,41.4,51.5,13],[43,59.8,51.5,13],[43,78.2,51.5,13]],
+    ex:[["t",[9.4,49.8,16.2,7],"fs-exw"],["m",[6.4,76.5,21.8,10],"fs-exd"]]}},n:"🧬 Ko'k ilmiy",c:"bio kim fiz",ac:"#1d4fc4",ac2:"#2fa84f",
   cv:{uni:[26.6,2.7,47,9.5],photo:[1.32,18.28,45.84,56.11],fac:[86.1,16.4,12.6,7.7],maj:[86.1,27.9,12.6,8],kurs:[86.1,39.4,12.6,8],title:[43.4,50.6,39.6,15.4],b1:[45.3,76.6,26,9],au:[68.4,89.2,26.6,5.5]},
   k:{ttl:[29.8,2.2,50.2,13],panel:[2.9,21.6,76.8,57.8]}},
- {id:"nur",n:"🍃 Yengil yashil",c:"bio kim eko geo",ac:"#13820f",ac2:"#5fc93a",
+ {id:"nur",L:{reja:{bg:"r",n:4,rows:[[23,21.6,66,15.4],[23,40.2,66,15],[23,59,66,15],[23,77.6,66,14.8]],bdg:[[11.9,22.6,8.6,13.4],[11.9,41.2,8.6,13],[11.9,60,8.6,13],[11.9,78.6,8.6,12.8]]},
+    xul:{bg:"x",pan:[3,17.5,56.5,62],img:[62.3,15,36.2,66.4],foot:[13,83.6,74,14]},
+    refs:{bg:"f",n:5,rows:[[11.2,19.6,86,16.4],[11.2,38,86,12.4],[11.2,52.6,86,12.8],[11.2,67.4,86,9.8],[11.2,79.8,86,12.6]],bdg:[[3.4,21.4,6.8,13],[3.4,39,6.8,10.6],[3.4,53.8,6.8,10.8],[3.4,68.2,6.8,8.4],[3.4,81,6.8,10.6]]}},n:"🍃 Yengil yashil",c:"bio kim eko geo",ac:"#13820f",ac2:"#5fc93a",
   cv:{uni:[23.4,3.0,53.9,13.4],photo:[5.86,24.7,39.3,51.3],fac:[50.8,25.7,43.8,7.6],title:[49.6,50.4,45.7,20.4],au:[28.4,82.1,55.2,8.3]},
   k:{ttl:[20.3,3.3,60.9,16.1],panel:[4.6,27,91.5,59]}},
- {id:"iqt",n:"🇺🇿 Iqtisodiy",c:"geo iqt tarix",ac:"#1a9a3a",ac2:"#0b3a8c",
+ {id:"iqt",L:{reja:{bg:"r",n:3,rows:[[11,35.2,39.5,11.6],[11,50.4,39.5,11.6],[11,65.8,39.5,11.6]],ex:[["t",[24,1.8,52,12.4],"fs-exw"],["R",[44,20.4,17.6,8.8],"fs-exw"]]},
+    refs:{bg:"f",n:5,ttl:[23.5,1.4,59,12.6],rows:[[44.8,16.6,39,10],[44.8,28.7,39,10],[44.8,40.8,39,10.6],[44.8,52.9,39,10.6],[44.8,65,39,10]]}},n:"🇺🇿 Iqtisodiy",c:"geo iqt tarix",ac:"#1a9a3a",ac2:"#0b3a8c",
   cv:{uni:[5.7,20.6,37,7.2],title:[5.7,28.2,37,21],info:[5.7,49.8,37,5.6],au:[12.9,58.2,29.6,8],photo:[44.14,41.02,16.15,29.54]},
   k:{ttl:[21.8,1.6,63.6,10.2],no:[0.7,1.1,7.7,4.7],img:[1.6,16.2,40.4,56.8],panel:[44.5,15,54,58.4],
      rows:[[50,16.4,47.3,8.6],[50,28.1,47.3,8.4],[50,39.6,47.3,8.6],[50,51.5,47.3,8.6],[50,63.3,47.3,8.6]]}}];
@@ -3785,7 +3809,7 @@ function fsBg(key){const u=window.FS_SPR&&window.FS_SPR[key];
 const fsR=r=>`left:${r[0]}%;top:${r[1]}%;width:${r[2]}%;height:${r[3]}%;`;
 // matnni o'z qutisiga sig'adigan eng katta o'lchamga keltiradi (data-g — bir guruhdagilar bir xil o'lchamda)
 function fsFit(el){const L=[...el.querySelectorAll(".fs-f")];if(!L.length)return;const G={};
-  L.forEach(b=>{const c=b.firstElementChild;if(!c||!b.clientHeight)return;const fz=+b.dataset.fz||2,bad=()=>c.offsetHeight>b.clientHeight+1||c.scrollWidth>b.clientWidth+1;
+  L.forEach(b=>{const c=b.firstElementChild;if(!c||!b.clientHeight)return;if(b.dataset.one){c.style.whiteSpace="nowrap";c.style.width="96%";c.style.margin="0 auto"}const fz=+b.dataset.fz||2,bad=()=>c.offsetHeight>b.clientHeight+1||c.scrollWidth>c.clientWidth+1;
     let lo=.3,hi=1;b.style.fontSize=fz+"cqw";if(!bad())lo=1;else for(let n=0;n<9;n++){const m=(lo+hi)/2;b.style.fontSize=(fz*m).toFixed(3)+"cqw";if(bad())hi=m;else lo=m}
     b.style.fontSize=(fz*lo).toFixed(3)+"cqw";const g=b.dataset.g;if(g)(G[g]=G[g]||[]).push([b,fz,lo])});
   Object.values(G).forEach(a=>{const m=Math.min(...a.map(x=>x[2]));a.forEach(([b,fz])=>b.style.fontSize=(fz*m).toFixed(3)+"cqw")})}
@@ -3794,27 +3818,48 @@ function fsTone(t){const w=String(t||"").trim().split(/\s+/);if(w.length<3)retur
 const FS_CAP='<svg viewBox="0 0 24 24"><path d="M12 3 1.5 8.2 12 13.4l8.6-4.3v6.1h1.9V8.2z" fill="currentColor"/><path d="M5.6 11.6v4.3c3.6 3 9.2 3 12.8 0v-4.3L12 14.8z" fill="currentColor"/></svg>';
 const FS_CHK='<svg viewBox="0 0 24 24"><path d="M5 12.6l4.6 4.6L19.4 7.4" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function fsKurs(short){const k=deck.kurs||"";if(!k)return"";if(k.startsWith("M"))return short?`Magistratura, ${k.slice(1)}-kurs`:`Magistratura ${k.slice(1)}-kurs`;return short?`${k}-kurs`:`${k}-kurs talabasi`}
-function fsHTML(s,i){const T=fsT(),four=deck.ratio!=="16/9",cov=s.type==="cover",u=fsBg(T.id+(cov?"_c":"_k"));
-  const box=(r,cls,fz,html,g,st="")=>`<div class="fs-s ${cls}" style="${fsR(r)}${st}"><div class="fs-f"${g?` data-g="${g}"`:""} data-fz="${fz}"><div>${html}</div></div></div>`;
+// har bir slayd turi uchun asl taqdimotdagi o'z sahifasi (reja, rasmli, xulosa, adabiyotlar)
+function fsLay(T,s,src){const L=T.L||{},kind=s.kind,n=s.bullets.length,lv=s.levels||[];
+  const fitsRows=l=>l&&(!l.rows||(n===l.n&&!lv.some(x=>x===1)&&s.bullets.every(t=>String(t).length<=(kind==="refs"?230:120))));
+  if(kind==="reja"&&L.reja&&fitsRows(L.reja))return L.reja;
+  if(kind==="refs"&&L.refs&&fitsRows(L.refs))return L.refs;
+  if(kind==="xulosa"&&L.xul)return L.xul;
+  if(!kind&&src&&L.img)return L.img;
+  return null}
+function fsLayHTML(T,L,s,i,src,box,pic){const kind=s.kind,lv=s.levels||[],nm=s.nums||[];let h="",mi=0;
+  const sp=j=>`<span contenteditable data-i="${i}" data-k="${j}">${esc(s.bullets[j])}</span>`;
+  const no=j=>kind==="refs"?j+1+(s.start||0):(nm[j]||++mi);
+  if(L.ttl)h+=`<div class="fs-s fs-hd" style="${fsR(L.ttl)}"><div class="fs-f" data-fz="3.6"><div><span contenteditable data-i="${i}" data-f="title">${esc(s.title)}</span></div></div></div>`;
+  (L.ex||[]).forEach(([k,r,c])=>{const t=k==="t"?deck.title:k==="m"?(deck.major||""):k==="R"?"REJA":"";if(t)h+=box(r,"fs-ex "+c,k==="R"?3:1.9,esc(t))});
+  if(L.rows){s.bullets.forEach((t,j)=>{const n=no(j);h+=box(L.rows[j],"fs-rw2",kind==="refs"?2.3:2.7,sp(j),"rw");if(L.bdg)h+=`<div class="fs-s fs-bd" style="${fsR(L.bdg[j])}">${n}</div>`});return h}
+  let B=s.bullets.map((t,j)=>j),foot=-1;if(L.foot&&B.length>=2)foot=B.pop();
+  const badge=j=>kind==="reja"?(lv[j]===1?"":`<b>${esc(String(no(j)))}</b>`):kind==="refs"?`<b>${no(j)}</b>`:FS_CHK;
+  h+=`<div class="fs-s fs-pan fs-pl2" style="${fsR(L.pan)}"><div class="fs-f" data-fz="${src?2.45:2.8}"><ul>${B.map(j=>`<li class="${kind==="reja"&&lv[j]===1?"sub":""}"><i>${badge(j)}</i>${sp(j)}</li>`).join("")}</ul></div></div>`;
+  if(L.img&&src)h+=pic(L.img,src,T.id==="nur"?"nr2":"gr2");
+  if(foot>=0)h+=box(L.foot,"fs-ft",2.5,sp(foot));
+  return h}
+function fsHTML(s,i){const T=fsT(),four=deck.ratio!=="16/9",cov=s.type==="cover";let u=fsBg(T.id+(cov?"_c":"_k"));
+  const box=(r,cls,fz,html,g,one)=>`<div class="fs-s ${cls}" style="${fsR(r)}"><div class="fs-f"${g?` data-g="${g}"`:""}${one?' data-one="1"':""} data-fz="${fz}"><div>${html}</div></div></div>`;
   const ed=(f,t)=>`<span contenteditable data-i="${i}" data-f="${f}">${t}</span>`;
-  const pic=(r,src,cls)=>src?`<div class="fs-ph ${cls||""}" style="${fsR(r)}"><img src="${esc(src)}" alt="" crossorigin="anonymous" onerror="this.parentNode.classList.add('none');this.remove()"></div>`:"";
+  const pic=(r,src,cls)=>src?`<div class="fs-ph ${cls||""}" style="${fsR(r)}">${/\bcv\b/.test(cls||"")?`<img class="bk" src="${esc(src)}" alt="" crossorigin="anonymous" onerror="this.remove()">`:""}<img class="fr" src="${esc(src)}" alt="" crossorigin="anonymous" onerror="this.parentNode.classList.add('none');this.remove()"></div>`:"";
   let inner="";
   if(cov){const C=T.cv,photo=deck.uniImg||imgs(s)[0]||"",yr=new Date().getFullYear(),uni=deck.uni||"",fac=deck.fac||"",maj=deck.major||"";
     const ttl=`<h1 contenteditable data-i="${i}" data-f="title">${fsTone(s.title)}</h1>`;
     if(T.id==="yashil")inner=`<div class="fs-s fs-logo" style="${fsR(C.logo)}">${FS_CAP}</div>`+pic(C.photo,photo,"cv")+
-      (uni?box(C.uni,"fs-uni",2.75,esc(uni)):"")+(fac?box(C.fac,"fs-fac",2.05,esc(fac)):"")+box(C.title,"fs-ttl0",4.6,ttl)+
-      box(C.b1,"fs-b1",1.75,esc(maj?`Yo'nalish: ${maj}`:deck.region||String(yr)))+box(C.b2,"fs-b2",1.45,esc(fsKurs(true)||String(yr)))+
-      (deck.author?box(C.au,"fs-au",2.2,ed("author",esc(deck.author))):"");
+      (uni?box(C.uni,"fs-uni",2.75,esc(uni)):"")+(fac?box(C.fac,"fs-fac",2.05,esc(fac),0,1):"")+box(C.title,"fs-ttl0",4.6,ttl)+
+      box(C.b1,"fs-b1",1.75,esc(maj?`Yo'nalish: ${maj}`:deck.region||String(yr)),0,1)+box(C.b2,"fs-b2",1.45,esc(fsKurs(true)||String(yr)),0,1)+
+      (deck.author?box(C.au,"fs-au",2.2,ed("author",esc(deck.author)),0,1):"");
     else if(T.id==="kok")inner=pic(C.photo,photo,"cv")+(uni?box(C.uni,"fs-uni",2.7,fsTone(uni)):"")+
       (fac?box(C.fac,"fs-pl",1.9,esc(fac),"pl"):"")+(maj?box(C.maj,"fs-pl",1.9,esc(`Yo'nalish: ${maj}`),"pl"):"")+(deck.kurs?box(C.kurs,"fs-pl",1.9,esc(fsKurs()),"pl"):"")+
       `<div class="fs-s fs-tp" style="${fsR(C.title)}"><div class="fs-f" data-fz="5.6"><div>${ttl}</div></div></div>`+
-      box(C.b1,"fs-b1",2.1,esc([deck.region,yr+"-yil"].filter(Boolean).join(" — ")))+(deck.author?box(C.au,"fs-au",2.35,ed("author",esc(deck.author))):"");
-    else if(T.id==="nur")inner=pic(C.photo,photo,"cv nr")+(uni?box(C.uni,"fs-uni",2.9,esc(uni)):"")+(fac?box(C.fac,"fs-fac",2.4,esc([fac,maj&&`Yo'nalish: ${maj}`,fsKurs(true)].filter(Boolean).join(" • "))):"")+
-      box(C.title,"fs-ttl0",4.2,ttl)+(deck.author?box(C.au,"fs-au",2.5,`Tayyorladi: ${ed("author",esc(deck.author))}`):"");
+      box(C.b1,"fs-b1",2.1,esc([deck.region,yr+"-yil"].filter(Boolean).join(" — ")),0,1)+(deck.author?box(C.au,"fs-au",2.35,ed("author",esc(deck.author)),0,1):"");
+    else if(T.id==="nur")inner=pic(C.photo,photo,"cv nr")+(uni?box(C.uni,"fs-uni",2.9,esc(uni)):"")+(fac?box(C.fac,"fs-fac",2.4,esc([fac,maj&&`Yo'nalish: ${maj}`,fsKurs(true)].filter(Boolean).join(" • ")),0,1):"")+
+      box(C.title,"fs-ttl0",4.2,ttl)+(deck.author?box(C.au,"fs-au",2.5,`Tayyorladi: ${ed("author",esc(deck.author))}`,0,1):"");
     else{const inf=[fac,maj&&`Yo'nalish: ${maj}`,fsKurs()].filter(Boolean).join(" • ");
-      inner=(uni?box(C.uni,"fs-uni",1.75,esc(uni)):"")+box(C.title,"fs-ttl0",4.4,ttl)+(inf?box(C.info,"fs-inf",1.4,esc(inf)):"")+
-      (deck.author?box(C.au,"fs-au",1.9,`<small>Tayyorladi:</small> ${ed("author",esc(deck.author))}`):"")+pic(C.photo,photo,"cv gold")}}
-  else{const K=T.k,kind=s.kind,src=kind==="reja"||kind==="refs"||(T.id==="nur"&&i%3!==2)?"":(s.side||imgs(s)[0]||""),pa=s.bullets.length-(s.plain||0),nm=s.nums||[],lv=s.levels||[];let mi=0;
+      inner=(uni?box(C.uni,"fs-uni",1.75,esc(uni)):"")+box(C.title,"fs-ttl0",4.4,ttl)+(inf?box(C.info,"fs-inf",1.4,esc(inf),0,1):"")+
+      (deck.author?box(C.au,"fs-au",1.9,`<small>Tayyorladi:</small> ${ed("author",esc(deck.author))}`,0,1):"")+pic(C.photo,photo,"cv gold")}}
+  else{const K=T.k,kind=s.kind,src=kind==="reja"||kind==="refs"||(T.id==="nur"&&kind!=="xulosa"&&i%3!==2)?"":(s.side||imgs(s)[0]||""),pa=s.bullets.length-(s.plain||0),nm=s.nums||[],lv=s.levels||[];let mi=0;
+    const LY=fsLay(T,s,src);if(LY){u=fsBg(T.id+"_"+LY.bg);inner=fsLayHTML(T,LY,s,i,src,box,pic)}else{
     const badge=j=>kind==="reja"?(lv[j]===1?"":`<b>${esc(j<pa?(nm[j]||String(++mi)):String(++mi))}</b>`):kind==="refs"?`<b>${j+1+(s.start||0)}</b>`:FS_CHK;
     const item=(t,j)=>`<li class="${kind==="reja"&&lv[j]===1?"sub":""}"><i>${badge(j)}</i><span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></li>`;
     const head=`<div class="fs-s fs-hd" style="${fsR(K.ttl)}"><div class="fs-f" data-fz="${T.id==="kok"?4.2:3.7}"><div><span contenteditable data-i="${i}" data-f="title">${esc(s.title)}</span></div></div></div>`;
@@ -3822,9 +3867,11 @@ function fsHTML(s,i){const T=fsT(),four=deck.ratio!=="16/9",cov=s.type==="cover"
     let body;
     if(rowsOk){mi=0;body=s.bullets.map((t,j)=>`<div class="fs-s fs-rw" style="${fsR(K.rows[j])}"><div class="fs-f" data-g="rw" data-fz="2.15"><div>${kind?`<b class="nb">${kind==="refs"?j+1+(s.start||0):++mi}.</b> `:""}<span contenteditable data-i="${i}" data-k="${j}">${esc(t)}</span></div></div></div>`).join("")}
     else body=`<div class="fs-s fs-pan${src&&T.id!=="iqt"?" im":""}" style="${fsR(K.panel)}"><div class="fs-f" data-fz="${T.id==="nur"&&!src?2.9:kind?2.25:2.35}"><ul>${s.bullets.map(item).join("")}</ul></div>${src&&T.id!=="iqt"?`<div class="fs-ph in"><img src="${esc(src)}" alt="" crossorigin="anonymous" onerror="this.parentNode.classList.add('none');this.remove()"></div>`:""}</div>`;
-    inner=head+(T.id==="iqt"?`<div class="fs-s fs-no" style="${fsR(K.no)}">${i+1}</div>`+(src?pic(K.img,src,"gold"):""):"")+body}
+    inner=head+(T.id==="iqt"?`<div class="fs-s fs-no" style="${fsR(K.no)}">${i+1}</div>`+(src?pic(K.img,src,"gold"):""):"")+body}}
   const bg=u?`<img class="fs-bg" src="${u}" alt="">`:`<div class="fs-fb"></div>`;
   return`<div class="slide fs fs-${T.id}" style="${slideVars(DARS)}--fa:${T.ac};--fa2:${T.ac2}">${four&&u?`<img class="fs-lb" src="${u}" alt="">`:""}<div class="fs-in${four?" lb":""}">${bg}${inner}</div></div>`}
+
+if(document.fonts){const rf=()=>{try{fitAll(document)}catch(_){}};document.fonts.ready.then(rf);try{document.fonts.addEventListener("loadingdone",rf)}catch(_){}}
 
 function darsHTML(s,i){if(design().fs)return fsHTML(s,i);if(design().tp)return tpHTML(s,i);const T=shInfo();if(!T)return darsHTML0(s,i);if(s.type==="cover")return shCover(s,i,T);return shWrap(darsHTML0(s,i),s,i,T)}
 function darsHTML0(s,i){
